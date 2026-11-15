@@ -1,11 +1,11 @@
-import {buildCastleArchitecture,dressDoorway,interiorLampSites,wingWindows,towerWindows,buildLowerCellars,cellarLamps} from './nachtrabe.js?v=128';
-// BLOCKWELT V143 — begehbarer originalgetreuer Lookout-Nachbau auf GLB-Basis.
+import {buildCastleArchitecture,dressDoorway,interiorLampSites,wingWindows,towerWindows,buildLowerCellars,cellarLamps} from './nachtrabe.js?v=144';
+// BLOCKWELT V144 — begehbarer originalgetreuer Lookout-Nachbau auf GLB-Basis.
 // V24 ist die feste Grundlage. Keine Änderungen an Terrain-, Speicher- oder Werkstatt-IDs.
 // Südliche Werkstätten öffnen sich jetzt zum Dorfplatz, mit sicheren
 // Wegen, individuell schaltbaren Fassadenzeichen und freiem Brunnenblick.
 // Die Geländeform und Spieler-Speicherschlüssel bleiben unverändert.
 // Keine Minecraft-Dateien oder Texturen; 3D-Technik: Three.js (MIT).
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js';
+import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const $ = (id) => document.getElementById(id);
@@ -5558,7 +5558,7 @@ async function restoreCustomPaw(){
     if(saved){pawCustomSelected=true;parseCustomPaw(saved,false);}
   }catch(error){console.warn('Kein lokal importiertes PAW-GLB',error);}
 }
-pawLoader.load('./paw-lookout-3d.glb?v=143',gltf=>{
+pawLoader.load('./paw-lookout-3d.glb?v=144',gltf=>{
   if(!pawCustomSelected)installPawMesh(gltf.scene);
 },undefined,error=>{
   console.error('3D-Zentrale fehlt',error);
@@ -5586,7 +5586,7 @@ pawResetBtn?.addEventListener('click',async()=>{
       tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
     });db.close();
     pawCustomSelected=false;
-    pawLoader.load('./paw-lookout-3d.glb?v=143',gltf=>{installPawMesh(gltf.scene);toast('Lookout V143 wiederhergestellt');});
+    pawLoader.load('./paw-lookout-3d.glb?v=144',gltf=>{installPawMesh(gltf.scene);toast('Lookout V143 wiederhergestellt');});
   }catch(error){console.warn(error);toast('Modell-Zuruecksetzen nicht moeglich');}
 });
 function pawPart(group,geom,mat,x,y,z){
@@ -6657,7 +6657,7 @@ function selectBlock(type){
 document.querySelectorAll('.slot').forEach(el=>el.addEventListener('click',()=>selectBlock(el.dataset.block)));
 function refreshNachtrabeMenu(){
   document.body.classList.add('meadow-mode');
-  $('worldSubtitle').textContent='PAW Patrol · V143';
+  $('worldSubtitle').textContent='PAW Patrol · V144';
   regionName='';updateRegion();
 }
 $('fortressBtn').addEventListener('click',()=>{
@@ -6703,7 +6703,7 @@ function updateRegion(){
       name='🔥 Innenhof';
     }
     if(regionName!==name){regionName=name;$('regionLabel').textContent=name;
-      $('worldSubtitle').textContent=name.includes('Paw Patrol')?'PAW Patrol · V143':'Schloss Nachtrabe · V143';}
+      $('worldSubtitle').textContent=name.includes('Paw Patrol')?'PAW Patrol · V144':'Schloss Nachtrabe · V143';}
     return;
   }
   let b=biomeAt(Math.floor(player.x),Math.floor(player.z));

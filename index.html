@@ -6,9 +6,9 @@
   <meta name="theme-color" content="#98cde8">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="description" content="Blockwelt V143 – vollständiger bereinigter PAW-Lookout-Spielstand mit sichtbarer GLB-Diagnose.">
-  <title>Blockwelt V143 · PAW Patrol Lookout</title>
-  <link rel="stylesheet" href="styles.css?v=143">
+  <meta name="description" content="Blockwelt V144 – vollständiger bereinigter PAW-Lookout-Spielstand mit sichtbarer GLB-Diagnose.">
+  <title>Blockwelt V144 · PAW Patrol Lookout</title>
+  <link rel="stylesheet" href="styles.css?v=144">
   <script>
     // Register before the WebGL module loads. Block native pinch before
     // movement begins, including a second finger landing on a HUD control.
@@ -38,7 +38,7 @@
   <div id="loading" class="loading">Die Blockwelt wird vorbereitet …</div>
 
   <header class="topbar">
-    <div class="identity"><span class="logo" aria-hidden="true">▦</span><div><strong>BLOCKWELT</strong><small id="worldSubtitle">PAW Patrol · V143</small></div></div>
+    <div class="identity"><span class="logo" aria-hidden="true">▦</span><div><strong>BLOCKWELT</strong><small id="worldSubtitle">PAW Patrol · V144</small></div></div>
     <button class="round top-btn" id="menuBtn" type="button" aria-label="Menü öffnen">☰</button>
   </header>
 
@@ -147,18 +147,111 @@
   </section>
 
   <script>
-  // Only error reporting; does not alter saved player data.
-  window.__blockweltStarted=false;
-  function blockweltStartupError(message){
-    if(window.__blockweltStarted)return;
-    const el=document.getElementById('loading');
-    if(el){el.textContent='Blockwelt konnte nicht starten: '+message+' · Bitte die fünf Dateien vollständig in den Repository-Hauptordner kopieren.';el.style.display='block';el.style.maxWidth='90vw';el.style.fontSize='14px';}
+  window.__blockweltStarted = false;
+  // Show the concrete fault rather than making an ungrounded claim about missing files.
+  window.__bwProblems = [];
+  function bwReport(kind, detail) {
+    if (window.__blockweltStarted) return;
+    const message = String(detail || 'Unbekannter Fehler');
+    const line = kind + ': ' + message;
+    if (window.__bwProblems.includes(line)) return;
+    window.__bwProblems.push(line);
+    const el = document.getElementById('loading');
+    if (!el) return;
+    el.replaceChildren();
+    Object.assign(el.style, {
+      position: 'fixed', inset: '0', width: '100%', maxWidth: 'none',
+      height: '100%', overflowY: 'auto', padding: 'max(env(safe-area-inset-top), 28px) 22px 38px',
+      background: '#152b3d', color: '#fff', zIndex: '99999',
+      display: 'block', boxSizing: 'border-box', textAlign: 'left',
+      fontFamily: 'system-ui, sans-serif', fontSize: '15px', lineHeight: '1.5'
+    });
+    const title = document.createElement('h2');
+    title.textContent = 'Blockwelt V144 – Startdiagnose';
+    title.style.cssText = 'font-size:22px;margin:0 0 14px;color:#fff';
+    el.append(title);
+    const text = document.createElement('pre');
+    text.style.cssText = 'font:14px/1.55 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere;background:#223d51;padding:15px;border-radius:12px;color:#fff';
+    text.textContent = window.__bwProblems.join('\n\n');
+    el.append(text);
+    const help = document.createElement('p');
+    help.textContent = 'Bitte diese Fehlermeldung als Screenshot senden. Keine Safari-Websitedaten löschen – deine Spielstände bleiben erhalten.';
+    el.append(help);
+    const btn = document.createElement('button');
+    btn.textContent = 'Fehlertext kopieren';
+    btn.style.cssText = 'padding:12px 18px;border-radius:11px;background:#cfecd9;color:#193b2d;border:0;font:600 15px system-ui';
+    btn.onclick = () => navigator.clipboard?.writeText(window.__bwProblems.join('\n\n')).catch(()=>{});
+    el.append(btn);
   }
-  window.addEventListener('error',e=>{if(!window.__blockweltStarted)blockweltStartupError('JavaScript-/Modulladefehler');});
-  window.addEventListener('unhandledrejection',e=>{if(!window.__blockweltStarted)blockweltStartupError('3D-Modulfehler');});
-  window.setTimeout(()=>{if(!window.__blockweltStarted)blockweltStartupError('Laden dauert ungewöhnlich lange. Internetverbindung oder Dateipfade prüfen');},18000);
+  window.addEventListener('error', e => {
+    if (window.__blockweltStarted) return;
+    if (e.message) bwReport('JavaScript', e.message + (e.filename ? ' [' + e.filename.split('/').pop() + ':' + e.lineno + ']' : ''));
+  });
+  window.addEventListener('unhandledrejection', e => {
+    if (!window.__blockweltStarted) bwReport('Promise', e.reason?.stack || e.reason?.message || String(e.reason));
+  });
   </script>
-  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/"}}</script>
-  <script type="module" src="game.js?v=143"></script>
+  <script>
+    (async () => {
+      const gameFiles = ['game.js', 'nachtrabe.js', 'paw-lookout-3d.glb', 'styles.css'];
+      const problem = window.bwReport;
+      const loadEl = document.getElementById('loading');
+      function status(s) { if (loadEl && !window.__bwProblems.length) loadEl.textContent = s; }
+      const headOk = async (name) => {
+        try {
+          const response = await fetch('./' + name + '?check=144', {method: 'HEAD', cache: 'no-store'});
+          if (response.status === 405 || response.status === 501) {
+            const alternative = await fetch('./' + name + '?check=144', {cache:'no-store'});
+            return alternative.ok ? '' : ('HTTP ' + alternative.status);
+          }
+          return response.ok ? '' : ('HTTP ' + response.status);
+        } catch (e) { return e.message || String(e); }
+      };
+      status('Prüfe die Blockwelt-Dateien …');
+      const checks = await Promise.all(gameFiles.map(async name => [name, await headOk(name)]));
+      const missing = checks.filter(([,err])=>err);
+      if (missing.length) {
+        problem('Datei nicht erreichbar', missing.map(([name, err])=>name+': '+err).join('\n'));
+        return;
+      }
+      const providers = [
+        {name:'jsDelivr', root:'https://cdn.jsdelivr.net/npm/three@0.187.0'},
+        {name:'unpkg', root:'https://unpkg.com/three@0.187.0'}
+      ];
+      const fails = [];
+      let chosen = null;
+      for (const item of providers) {
+        status('Prüfe 3D-Bibliothek (' + item.name + ') …');
+        const controller = new AbortController();
+        const timer = setTimeout(()=>controller.abort(),6500);
+        try {
+          const r = await fetch(item.root+'/build/three.module.js', {method:'GET',mode:'cors',signal:controller.signal,cache:'force-cache'});
+          if (!r.ok) throw Error('HTTP ' + r.status);
+          // Do not download more than the browser itself would need just to probe.
+          await r.body?.cancel();
+          chosen = item; break;
+        } catch(e) { fails.push(item.name+': '+(e.message||String(e))); }
+        finally {clearTimeout(timer);}
+      }
+      if (!chosen) {
+        problem('Three.js nicht erreichbar', fails.join('\n') + '\nNetzwerkzugriff auf beide Bibliotheksserver ist fehlgeschlagen.');
+        return;
+      }
+      const map = document.createElement('script');
+      map.type = 'importmap';
+      map.textContent = JSON.stringify({imports:{
+        'three': chosen.root+'/build/three.module.js',
+        'three/addons/': chosen.root+'/examples/jsm/'
+      }});
+      document.head.appendChild(map);
+      status('Starte die 3D-Blockwelt …');
+      try {
+        await import('./game.js?v=144');
+        if (!window.__blockweltStarted) problem('Startprüfung', 'game.js wurde geladen, meldet jedoch keinen erfolgreichen Spielstart.');
+      } catch (e) {
+        problem('Modulstart fehlgeschlagen', e.stack || e.message || String(e));
+      }
+    })();
+  </script>
 </body>
 </html>
