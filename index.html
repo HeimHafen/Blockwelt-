@@ -6,9 +6,9 @@
   <meta name="theme-color" content="#98cde8">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="description" content="Blockwelt V137 mit Schloss Nachtrabe und begehbarer Abenteuerwelt.">
-  <title>Blockwelt V137 · Schloss Nachtrabe</title>
-  <link rel="stylesheet" href="styles.css?v=137">
+  <meta name="description" content="Blockwelt V143 – vollständiger bereinigter PAW-Lookout-Spielstand mit sichtbarer GLB-Diagnose.">
+  <title>Blockwelt V143 · PAW Patrol Lookout</title>
+  <link rel="stylesheet" href="styles.css?v=143">
   <script>
     // Register before the WebGL module loads. Block native pinch before
     // movement begins, including a second finger landing on a HUD control.
@@ -38,7 +38,7 @@
   <div id="loading" class="loading">Die Blockwelt wird vorbereitet …</div>
 
   <header class="topbar">
-    <div class="identity"><span class="logo" aria-hidden="true">▦</span><div><strong>BLOCKWELT</strong><small id="worldSubtitle">Schloss Nachtrabe · V137</small></div></div>
+    <div class="identity"><span class="logo" aria-hidden="true">▦</span><div><strong>BLOCKWELT</strong><small id="worldSubtitle">PAW Patrol · V143</small></div></div>
     <button class="round top-btn" id="menuBtn" type="button" aria-label="Menü öffnen">☰</button>
   </header>
 
@@ -109,6 +109,10 @@
               <button id="dayBtn" class="option-btn" type="button">Himmel: ☀ Tag · Hell</button>
               <button id="compassBtn" class="option-btn" type="button" aria-pressed="true">🧭 Entdecker-Kompass: an</button>
               <button id="flightBtn" class="option-btn" type="button" aria-pressed="false">✦ Flugmodus einschalten</button>
+              <button id="pawModelImportBtn" class="option-btn" type="button">🐾 Eigenes GLB-3D-Modell importieren</button>
+              <button id="pawModelResetBtn" class="option-btn" type="button">↺ Standard-3D-Zentrale laden (alte Importe entfernen)</button>
+              <input id="pawModelFile" class="file-input" type="file" accept=".glb,model/gltf-binary" aria-label="GLB-Datei der PAW-Zentrale auswählen">
+              <p id="pawModelStatus" role="status" aria-live="polite" style="grid-column:1/-1;margin:4px 0 0;font-size:12px;color:#315b45">3D-Modell: Laden wird vorbereitet …</p>
             </div>
           </details>
           <details class="menu-panel">
@@ -142,6 +146,19 @@
     </div>
   </section>
 
-  <script type="module" src="game.js?v=137-neustart"></script>
+  <script>
+  // Only error reporting; does not alter saved player data.
+  window.__blockweltStarted=false;
+  function blockweltStartupError(message){
+    if(window.__blockweltStarted)return;
+    const el=document.getElementById('loading');
+    if(el){el.textContent='Blockwelt konnte nicht starten: '+message+' · Bitte die fünf Dateien vollständig in den Repository-Hauptordner kopieren.';el.style.display='block';el.style.maxWidth='90vw';el.style.fontSize='14px';}
+  }
+  window.addEventListener('error',e=>{if(!window.__blockweltStarted)blockweltStartupError('JavaScript-/Modulladefehler');});
+  window.addEventListener('unhandledrejection',e=>{if(!window.__blockweltStarted)blockweltStartupError('3D-Modulfehler');});
+  window.setTimeout(()=>{if(!window.__blockweltStarted)blockweltStartupError('Laden dauert ungewöhnlich lange. Internetverbindung oder Dateipfade prüfen');},18000);
+  </script>
+  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/"}}</script>
+  <script type="module" src="game.js?v=143"></script>
 </body>
 </html>

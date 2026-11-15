@@ -1,16 +1,17 @@
 import {buildCastleArchitecture,dressDoorway,interiorLampSites,wingWindows,towerWindows,buildLowerCellars,cellarLamps} from './nachtrabe.js?v=128';
-// BLOCKWELT V137 — Schloss Nachtrabe – Wildnis.
+// BLOCKWELT V143 — begehbarer originalgetreuer Lookout-Nachbau auf GLB-Basis.
 // V24 ist die feste Grundlage. Keine Änderungen an Terrain-, Speicher- oder Werkstatt-IDs.
 // Südliche Werkstätten öffnen sich jetzt zum Dorfplatz, mit sicheren
 // Wegen, individuell schaltbaren Fassadenzeichen und freiem Brunnenblick.
 // Die Geländeform und Spieler-Speicherschlüssel bleiben unverändert.
 // Keine Minecraft-Dateien oder Texturen; 3D-Technik: Three.js (MIT).
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const $ = (id) => document.getElementById(id);
 const gameEl = $('game');
-const BLOCK_TYPES = ['grass','dirt','stone','wood','leaves','sand','planks','bricks','cobble','glass','gold','water','path','snow','blossom','lantern','netherBrick','netherDeep','netherTrim','netherGold','lavaGlow'];
-const LABELS = {grass:'Gras',dirt:'Erde',stone:'Stein',wood:'Holz',leaves:'Blätter',sand:'Sand',planks:'Bretter',bricks:'Ziegel',cobble:'Pflaster',glass:'Glas',gold:'Gold',water:'Wasser',path:'Weg',snow:'Schnee',blossom:'Blüten',lantern:'Laterne',netherBrick:'Netherziegel',netherDeep:'Dunkelstein',netherTrim:'Nether-Kante',netherGold:'Netherwappen',lavaGlow:'Glutstein'};
+const BLOCK_TYPES = ['grass','dirt','stone','wood','leaves','sand','planks','bricks','cobble','glass','gold','water','path','snow','blossom','lantern','netherBrick','netherDeep','netherTrim','netherGold','lavaGlow','obsidian'];
+const LABELS = {grass:'Gras',dirt:'Erde',stone:'Stein',wood:'Holz',leaves:'Blätter',sand:'Sand',planks:'Bretter',bricks:'Ziegel',cobble:'Pflaster',glass:'Glas',gold:'Gold',water:'Wasser',path:'Weg',snow:'Schnee',blossom:'Blüten',lantern:'Laterne',netherBrick:'Netherziegel',netherDeep:'Dunkelstein',netherTrim:'Nether-Kante',netherGold:'Netherwappen',lavaGlow:'Glutstein',obsidian:'Obsidian'};
 const HALF = 320;
 const castlePortal={x:.5,z:65};
 const futurePortal={x:240.5,z:65};
@@ -43,6 +44,43 @@ const MEADOW_HEIGHT = 5; // Grass top y=4, feet y=5: a flat, stable building fie
 // Der Bauplan besteht nur aus echten Minecraft-ähnlichen Voxeln. Keine
 // gerenderten Kulissen, keine Eingriffe in die unveränderte Abenteuerwelt.
 const NETHER_BOUNDS={minX:-56,maxX:56,minZ:-86,maxZ:-11};
+// Mirror the west portal: 100 blocks beyond the east wall's outer face.
+const netherPortalSite={x:138,z:-58};
+const netherPortalFrame=[];
+for(let dy=0;dy<5;dy++)for(let dz=-2;dz<=1;dz++){
+  if(dy===0||dy===4||dz===-2||dz===1)
+    netherPortalFrame.push([netherPortalSite.x,MEADOW_HEIGHT+dy,Math.ceil(netherPortalSite.z)+dz]);
+}
+const netherExit={x:-248,z:-258};
+const inNetherBasin=(x,z)=>x>=-286&&x<=-210&&z>=-298&&z<=-222;
+function buildNetherBasinColumn(x,z){
+  const dx=x-netherExit.x,dz=z-netherExit.z;
+  const rim=Math.min(x+286,-210-x,z+298,-222-z);
+  const path=Math.abs(dx)<=2||Math.abs(dz)<=2;
+  const island=Math.sin(dx*.20)+Math.cos(dz*.24)+.46*Math.sin((dx+dz)*.58);
+  const plaza=Math.abs(dx)<7&&Math.abs(dz)<7;
+  const shore=path||plaza||rim<5||island>-.26;
+  if(!shore)put(x,4,z,'lavaGlow');
+  else put(x,4,z,path?'netherTrim':plaza?'cobble':'netherDeep');
+  if(rim<3){
+    const height=3+Math.floor(pixelHash(x,z,91)*5);
+    for(let y=5;y<5+height;y++)put(x,y,z,'obsidian');
+  }
+  for(const [px,pz,height] of [[-17,-16,14],[17,-17,11],[-18,17,17],[18,18,13]]){
+    const distance=Math.max(Math.abs(dx-px),Math.abs(dz-pz));
+    if(distance>4)continue;
+    for(let y=5;y<5+height-distance*2;y++)
+      put(x,y,z,y===height+4-distance*2?'netherGold':distance%2?'netherBrick':'obsidian');
+  }
+  // A walk-through spine with glowing ribs over the north causeway.
+  if(dz<=-8&&dz>=-31&&dz%5===0&&Math.abs(dx)<=5){
+    if(Math.abs(dx)===5)for(let y=5;y<=10;y++)put(x,y,z,'obsidian');
+    put(x,11+Math.floor((5-Math.abs(dx))/2),z,Math.abs(dx)%2?'netherBrick':'lavaGlow');
+  }
+  if(dz===0&&Math.abs(dx)<=2){
+    for(let y=5;y<=9;y++)if(Math.abs(dx)===2||y===5||y===9)put(x,y,z,'obsidian');
+  }
+}
 const doorSites=[];
 const stairTreads=new Map();
 let netherChunkPlan=null;
@@ -98,6 +136,7 @@ function makeNetherPlan(){
   }
   // Finale Geometriedaten werden pro 16x16-Chunk gespeichert. Der Chunkgenerator
   // schreibt sie VOR den Spieleränderungen und überschreibt niemals den Save.
+  for(const [x,y,z] of netherPortalFrame)solid(x,y,z,'obsidian');
   netherPlanVoxels=vox;
   netherChunkPlan=new Map();
   for(const [k,type] of vox){
@@ -193,6 +232,7 @@ function texture(type,face){
     netherDeep:['#353448','#413d55','#51506a','#3c3a50','#5a566d','#302e43'],
     netherTrim:['#a85b62','#ba6e6b','#c78078','#ab6266','#c27a71','#9a535e'],
     netherGold:['#e8a23d','#f7c65d','#ffd98b','#b86732','#ffde92','#c7863d'],
+    obsidian:['#181222','#231932','#30213f','#120f1b','#362747','#211829'],
     lavaGlow:['#f76613','#ff9a1d','#ffd256','#e84f13','#ffe17c','#ff7219']
   };
   const pal=palettes[(type==='grass'&&face==='bottom')?'dirt':type];
@@ -1719,6 +1759,7 @@ function generateChunkData(cx,cz){
       for(let y=0;y<MEADOW_HEIGHT;y++)
         put(x,y,z,y===MEADOW_HEIGHT-1?(inFuture(x)?'netherDeep':'grass'):y>=MEADOW_HEIGHT-3?'dirt':'stone');
       if(inFuture(x))buildFutureColumn(x,z);
+      if(inNetherBasin(x,z))buildNetherBasinColumn(x,z);
       if(x>=-272&&x<=-232&&z>=174&&z<=199)buildPawColumn(x,z);
     }
     // Erzeugte Festungsblöcke zuerst, persönliche Änderungen zuletzt.
@@ -2703,6 +2744,34 @@ function treadIsSupported(tread){
     get(x+dx,y,z+dz)===upper&&!get(x,y,z);
 }
 function blocked(x,y,z){
+  if(isMeadow()){
+    const hx=x+251.5,hz=z-190.5,rr=Math.hypot(hx,hz),localY=y-5;
+    if(!pawDoorsOpen&&Math.abs(hx)<2.0&&Math.abs(hz+6.24)<.18+PLAYER_R&&localY>.3&&localY<3.7)return true;
+    // Fully solid and walkable mission-room platform.
+    if((rr<7.84||(Math.abs(hx+2.08)<1.53&&Math.abs(hz-8.04)<1.56))&&y>=23.80&&y<23.985&&y+PLAYER_H>23.95)return true;
+    // Smooth actual Lookout outside walls, not voxel pillars; entrance faces south.
+    if(localY>.43&&localY<17.5){
+      const rad=localY<5.3?6.8-(localY-.58)*.35:localY<6.4?5.15:
+        4.85-(localY-6.4)*(.3/2.7);
+      const radius=localY>6.4?4.85-(localY-6.4)*(1.3/11.1):rad;
+      const openFront=hz<0&&Math.abs(hx)<2.45&&localY<5.2;
+      if(!openFront&&Math.abs(rr-radius)<PLAYER_R+.17)return true;
+    }
+    // Panorama glass railing (invisible collider only, while glass stays transparent).
+    if(localY>=18.9&&localY<22.86&&Math.abs(rr-7.86)<PLAYER_R+.04){
+      const angle=(Math.atan2(hx,hz)+Math.PI*2)%(Math.PI*2);
+      if(angle<5.83||angle>6.24)return true;
+    }
+    // Six rounded kennels; doorways are real holes that can be walked through.
+    for(const a of [.45,1.08,1.77,4.51,5.18,5.83]){
+      const dx=hx-15.1*Math.sin(a),dz=hz-15.1*Math.cos(a);
+      if(Math.abs(Math.hypot(dx,dz)-2.53)>PLAYER_R+.14||localY<.3||localY>2.67)continue;
+      const frontZ=Math.sin(a)*dx+Math.cos(a)*dz;
+      const sideX=Math.cos(a)*dx-Math.sin(a)*dz;
+      if(!(frontZ<0&&Math.abs(sideX)<1.25))return true;
+    }
+  }
+
   if(Math.abs(x-26.89)<PLAYER_R+.065&&Math.abs(z+62)<.99+PLAYER_R
     &&y<8.36&&y+PLAYER_H>5&&Math.abs(wardrobeLeaves[0].hinge.rotation.y)<1.25)return true;
   if(Math.abs(x-29.12)<PLAYER_R+.055&&Math.abs(z+62)<1+PLAYER_R&&
@@ -2737,6 +2806,8 @@ function horizontal(axis,amount){
 }
 function updateMovement(dt){
   if(!gameRunning)return;
+  if(pawDrive){updatePawDrive(dt);return;}
+  if(pawScopeView)return;
   updateWorldStream();
   const keyboardX=Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'));
   const keyboardF=Number(keys.has('KeyW')||keys.has('ArrowUp'))-Number(keys.has('KeyS')||keys.has('ArrowDown'));
@@ -2793,7 +2864,7 @@ function updateMovement(dt){
   if(player.y<BUNKER_FLOOR-4){respawn();toast('Wieder sicher auf der Wiese!');}
 }
 function respawn(){player.x=.5;player.z=isMeadow()?-.5:6.5;player.y=isMeadow()?MEADOW_HEIGHT+.08:terrainHeight(0,6)+.08;player.vy=0;player.grounded=false;}
-function jump(){if(!gameRunning||flying)return;const inWater=get(Math.floor(player.x),Math.floor(player.y+.25),Math.floor(player.z))==='water';if(player.grounded||inWater){player.vy=inWater?4.5:JUMP;player.grounded=false;}}
+function jump(){if(pawDrive){exitPawDrive();return;}if(!gameRunning||flying)return;const inWater=get(Math.floor(player.x),Math.floor(player.y+.25),Math.floor(player.z))==='water';if(player.grounded||inWater){player.vy=inWater?4.5:JUMP;player.grounded=false;}}
 let thirdPerson=true;
 try{thirdPerson=localStorage.getItem('blockwelt-kamera')!=='ego';}catch(_){}
 const eye=new THREE.Vector3(),cameraOffset=new THREE.Vector3(),viewDirection=new THREE.Vector3();
@@ -2803,6 +2874,10 @@ const cameraCorners=[[0,0],[-.15,-.12],[-.15,.12],[.15,-.12],[.15,.12]];
 let cameraDistance=0;
 let clearCameraTime=0;
 function updateCamera(dt=0){
+  if(pawScopeView){
+    camera.position.set(pawHQ.position.x,pawHQ.position.y+27.2,pawHQ.position.z);
+    camera.rotation.set(pitch,yaw,0);guardian.visible=false;return;
+  }
   eye.set(player.x,player.y+1.55,player.z);
   camera.rotation.set(pitch,yaw,0);
   camera.position.copy(eye);
@@ -5262,24 +5337,96 @@ function teleportTo(x,z,label,targetX=x,targetZ=z){
   faceTowards(targetX,targetZ);updateWorldStream(true);updateCamera();updateCompass();
   toast(label);
 }
-const rainbowColors=['#ff5148','#ff9b40','#ffe277','#75ea9b','#59deff','#7387ff','#c078ff'];
-for(const portal of [castlePortal,futurePortal]){
-  const arch=new THREE.Group();
-  arch.position.set(portal.x,5,portal.z);
-  for(let index=0;index<rainbowColors.length;index++){
-    const radius=2.24+index*.13;
-    const band=new THREE.Mesh(new THREE.TorusGeometry(radius,.07,6,48,Math.PI),
-      new THREE.MeshBasicMaterial({color:rainbowColors[index]}));
-    band.position.y=2.3;
-    arch.add(band);
+const netherVeilMaterial=new THREE.ShaderMaterial({
+  side:THREE.DoubleSide,
+  uniforms:{time:{value:0},dark:{value:new THREE.Color("#7224a4")},bright:{value:new THREE.Color("#df83ff")}},
+  vertexShader:`
+    varying vec2 portalUv;
+    void main(){
+      portalUv=uv;
+      gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);
+    }`,
+  fragmentShader:`
+    uniform float time;
+    uniform vec3 dark,bright;
+    varying vec2 portalUv;
+    void main(){
+      vec2 uv=floor(portalUv*vec2(32.,48.))/vec2(32.,48.);
+      vec2 p=(uv-.5)*vec2(1.,1.5);
+      float swirl=sin(33.*length(p)+3.*atan(p.y,p.x+.0001)-time*2.);
+      float ripple=sin(23.*uv.y+8.*uv.x+time*1.5);
+      float shade=smoothstep(-1.2,1.5,swirl+.55*ripple);
+      float rim=1.-smoothstep(0.,.14,min(min(uv.x,1.-uv.x),min(uv.y,1.-uv.y)));
+      gl_FragColor=vec4(mix(dark,bright,clamp(.72*shade+.42*rim,0.,1.)),1.);
+      #include <colorspace_fragment>
+    }`
+});
+const netherVeil=new THREE.Mesh(new THREE.PlaneGeometry(2,3),netherVeilMaterial);
+netherVeil.rotation.y=Math.PI/2;
+netherVeil.position.set(netherPortalSite.x+.5,MEADOW_HEIGHT+2.5,netherPortalSite.z);
+netherVeil.visible=false;
+scene.add(netherVeil);
+
+function portalSurface(width,height,dark,bright){
+  const material=netherVeilMaterial.clone();
+  material.uniforms.dark.value.set(dark);
+  material.uniforms.bright.value.set(bright);
+  return new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+}
+const netherReturn=portalSurface(3,3,'#7224a4','#df83ff');
+netherReturn.position.set(netherExit.x+.5,7.5,netherExit.z+.5);
+scene.add(netherReturn);
+
+const travelGates=[castlePortal,futurePortal].map((portal,index)=>{
+  const group=new THREE.Group();
+  group.position.set(portal.x,5,portal.z);
+  const stone=new THREE.MeshStandardMaterial({
+    color:index?'#37485c':'#4b4050',roughness:.79,metalness:index?.34:.06
+  });
+  const trim=new THREE.MeshStandardMaterial({
+    color:index?'#6cc6e8':'#d3a65b',roughness:.42,metalness:.55
+  });
+  for(let y=0;y<5;y++)for(let x=-2;x<=2;x++){
+    if(Math.abs(x)!==2&&y!==4)continue;
+    const block=new THREE.Mesh(new THREE.BoxGeometry(.95,.97,.96),stone);
+    block.position.set(x,y+.5,0);
+    group.add(block);
     for(const side of [-1,1]){
-      const pillar=new THREE.Mesh(new THREE.BoxGeometry(.136,2.3,.19),band.material);
-      pillar.position.set(side*radius,1.15,0);
-      arch.add(pillar);
+      const plate=new THREE.Mesh(new THREE.BoxGeometry(.56,.52,.08),trim);
+      plate.position.set(x,y+.5,side*.47);
+      group.add(plate);
     }
   }
-  scene.add(arch);
+  const surface=portalSurface(3.06,4,index?'#104547':'#403682',index?'#68f9ff':'#ffc686');
+  surface.position.y=2;
+  group.add(surface);
+  scene.add(group);
+  return {group,surface,portal};
+});
+function crossesPortal(before,after,plane){
+  return (before<plane)!==(after<plane);
 }
+function crossNetherPortal(oldX,oldZ){
+  if(!gameRunning||player.y<4.9||player.y>8.78)return false;
+  const entrance=netherVeil.position;
+  if(netherVeil.visible&&crossesPortal(oldX,player.x,entrance.x)){
+    const t=(entrance.x-oldX)/(player.x-oldX);
+    if(Math.abs(oldZ+(player.z-oldZ)*t-entrance.z)<.95){
+      teleportTo(netherExit.x,netherExit.z+4,'Nether · Glutbecken',netherExit.x,netherExit.z+20);
+      return true;
+    }
+  }
+  const exit=netherReturn.position;
+  if(netherReturn.visible&&crossesPortal(oldZ,player.z,exit.z)){
+    const t=(exit.z-oldZ)/(player.z-oldZ);
+    if(Math.abs(oldX+(player.x-oldX)*t-exit.x)<1.45){
+      teleportTo(netherPortalSite.x-4,netherPortalSite.z,'Zurück bei Schloss Nachtrabe',37,netherPortalSite.z);
+      return true;
+    }
+  }
+  return false;
+}
+
 const pawPortal=new THREE.Group();
 // West wall starts at x=-38. Center the portal on the length of that wall.
 pawPortal.position.set(-138,MEADOW_HEIGHT,-58.5);
@@ -5329,209 +5476,484 @@ badgeTexture.colorSpace=THREE.SRGBColorSpace;
 const badgeMaterial=new THREE.MeshBasicMaterial({map:badgeTexture,transparent:true});
 for(const face of [-1,1])
   pawPart(new THREE.PlaneGeometry(2.7,1.69),badgeMaterial,0,5.52,face*.47).rotation.y=face===1?0:Math.PI;
-const veilShape=new THREE.Shape();
-veilShape.moveTo(-2.16,0);
-veilShape.lineTo(2.16,0);
-veilShape.lineTo(2.16,3);
-veilShape.absarc(0,3,2.16,0,Math.PI,false);
-veilShape.closePath();
-const veil=new THREE.MeshBasicMaterial({color:0x57c8ff,opacity:.25,transparent:true,depthWrite:false,side:THREE.DoubleSide});
-pawPart(new THREE.ShapeGeometry(veilShape,24),veil,0,0,0);
+const pawSurface=portalSurface(4.25,3,'#134389','#7ad9ff');
+pawSurface.position.y=1.5;
+pawPortal.add(pawSurface);
 const pawReturn=pawPortal.clone();
 pawReturn.position.set(-252,MEADOW_HEIGHT,174);
 pawReturn.rotation.y=0;
 scene.add(pawPortal,pawReturn);
+// Real glTF asset: curved triangles, real surfaces, not voxel blocks.
+// V143 — full replacement; always use the bundled model on first load. This GLB is a newly built reconstruction.
+// No official game files are copied; user-supplied third-party imports stay local.
 const pawHQ=new THREE.Group();
 pawHQ.position.set(-251.5,5,190.5);
 scene.add(pawHQ);
-const hqWhite=new THREE.MeshStandardMaterial({color:0xe8f1fa,roughness:.45});
-const hqRed=new THREE.MeshStandardMaterial({color:0xdb2841,roughness:.38});
-const hqBlue=new THREE.MeshStandardMaterial({color:0x163e77,roughness:.43});
-const hqGlow=new THREE.MeshBasicMaterial({color:0x84e0ff});
-function hqMesh(geometry,material,x,y,z){
-  const mesh=new THREE.Mesh(geometry,material);
-  mesh.position.set(x,y,z);
-  pawHQ.add(mesh);
-  return mesh;
+const hqBlue=new THREE.MeshStandardMaterial({color:0x1660aa,roughness:.34,metalness:.12});
+const hqYellow=new THREE.MeshStandardMaterial({color:0xffc928,roughness:.43});
+const hqWhite=new THREE.MeshStandardMaterial({color:0xe8eef4,roughness:.40});
+const hqSilver=new THREE.MeshStandardMaterial({color:0xb4c0c8,roughness:.33,metalness:.43});
+const hqGlass=new THREE.MeshPhysicalMaterial({color:0x78d9f8,transparent:true,opacity:.22,depthWrite:false,roughness:.08,metalness:.12,side:THREE.DoubleSide});
+const hqGlow=new THREE.MeshBasicMaterial({color:0x80e3ff});
+const pawLoader=new GLTFLoader();
+let pawModelLoaded=false,pawCustomSelected=false,pawModelRoot=null;
+const pawStatus=document.getElementById('pawModelStatus');
+function pawStatusMessage(message,failed=false){
+  if(!pawStatus)return;
+  pawStatus.textContent='3D-Modell: '+message;
+  pawStatus.style.color=failed?'#b4232c':'#315b45';
 }
-function hqBox(material,x,y,z,w,h,d){
-  return hqMesh(new THREE.BoxGeometry(w,h,d),material,x,y,z);
+
+function installPawMesh(root,normalize=false){
+  if(normalize){
+    root.updateMatrixWorld(true);
+    const b=new THREE.Box3().setFromObject(root),size=b.getSize(new THREE.Vector3());
+    if(!Number.isFinite(size.y)||size.y<.0001||size.y>1e8)throw Error('Ungueltige GLB-Abmessungen');
+    const factor=27/size.y;
+    const outer=new THREE.Group();
+    const center=b.getCenter(new THREE.Vector3());
+    root.scale.setScalar(factor);
+    root.position.set(-center.x*factor,-b.min.y*factor,-center.z*factor);
+    outer.add(root);root=outer;
+  }
+  root.traverse(obj=>{
+    if(!obj.isMesh)return;
+    const name=(obj.name||'').toLowerCase();
+    // The exported glass is translucent; correcting material handling is important
+    // because the previous V140 glass rendered as an opaque blue wall on iPhone.
+    if(name.includes('glass'))obj.material=hqGlass;
+    else if(name.includes('light'))obj.material=new THREE.MeshStandardMaterial({color:0x8cf3ff,emissive:0x3ec7f4,emissiveIntensity:.65,roughness:.23});
+    else if(name.includes('screen'))obj.material=new THREE.MeshStandardMaterial({color:0x153761,emissive:0x0f2f5b,emissiveIntensity:.8,roughness:.18});
+    obj.castShadow=false;obj.receiveShadow=true;
+  });
+  if(pawModelRoot){pawHQ.remove(pawModelRoot);pawModelRoot.traverse(obj=>{if(obj.geometry)obj.geometry.dispose();});}
+  pawModelRoot=root;pawHQ.add(root);pawModelLoaded=true;
+  pawStatusMessage('Geladen – begehbare Zentrale ist aktiv');
 }
-// Circular trim conceals the stepped edges of the structural floors.
-for(const [top,bottom,height,y,material] of [
-  [6.8,6.8,.40,5.85,hqBlue],[3.65,6.7,.88,6.45,hqWhite],
-  [8.75,4.05,1.26,17.55,hqBlue],[8.84,8.84,.52,18.65,hqRed],
-  [8.86,8.86,.56,23.52,hqRed],[7.90,8.86,.74,24.14,hqWhite],
-  [5.3,7.90,.7,24.86,hqBlue],[3.35,5.3,.62,25.45,hqRed]
-]){
-  hqMesh(new THREE.CylinderGeometry(top,bottom,height,64),material,0,y,0);
+function parseCustomPaw(buffer,feedback=true){
+  pawLoader.parse(buffer,'',gltf=>{
+    try{installPawMesh(gltf.scene,true);if(feedback)toast('Eigenes 3D-Modell geladen');}
+    catch(error){console.warn(error);toast('Modell konnte nicht eingepasst werden');}
+  },err=>{console.warn(err);toast('Keine lesbare GLB-Datei');});
 }
-for(let pane=0;pane<16;pane++){
-  const angle=pane*Math.PI/8;
-  const mullion=hqBox(hqWhite,Math.sin(angle)*8.66,21,Math.cos(angle)*8.66,.15,4.25,.25);
-  mullion.rotation.y=angle;
+function modelDatabase(){return new Promise((resolve,reject)=>{
+  if(!('indexedDB' in window)){reject(Error('IndexedDB fehlt'));return;}
+  const request=indexedDB.open('blockwelt-paw-glb-v1',1);
+  request.onupgradeneeded=()=>request.result.createObjectStore('tower');
+  request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);
+});}
+async function persistCustomPaw(buffer){
+  const db=await modelDatabase();await new Promise((resolve,reject)=>{
+    const tx=db.transaction('tower','readwrite');tx.objectStore('tower').put(buffer,'model');
+    tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+  });db.close();
 }
-for(const side of [-1,1]){
-  hqBox(hqRed,side*1.65,2.45,-6.6,.31,4.85,.46);
-  hqBox(hqGlow,side*1.49,2.35,-6.86,.10,3.88,.07);
+async function restoreCustomPaw(){
+  try{
+    const db=await modelDatabase();
+    const saved=await new Promise((resolve,reject)=>{
+      const tx=db.transaction('tower','readonly'),r=tx.objectStore('tower').get('model');
+      r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);
+    });db.close();
+    if(saved){pawCustomSelected=true;parseCustomPaw(saved,false);}
+  }catch(error){console.warn('Kein lokal importiertes PAW-GLB',error);}
 }
-hqBox(hqBlue,0,4.65,-6.85,4.4,.49,1.5);
-const hqYellow=new THREE.MeshStandardMaterial({color:0xffcb25,roughness:.39});
-const hqGlass=new THREE.MeshStandardMaterial({color:0x278cc5,metalness:.24,roughness:.25,transparent:true,opacity:.69});
-for(const side of [-1,1]){
-  const support=hqBox(hqWhite,side*2.43,11.7,-2.5,.72,11.2,1.95);
-  support.rotation.z=side*.11;
-}
-hqBox(hqGlass,0,11.65,-3.28,2.48,10.6,.16);
-for(const y of [7.2,9.5,11.8,14.1,16.4])hqBox(hqBlue,0,y,-3.42,2.6,.14,.2);
-const towerBadge=hqMesh(new THREE.PlaneGeometry(3.2,2),badgeMaterial,0,13,-3.57);
-towerBadge.rotation.y=Math.PI;
-hqMesh(new THREE.TorusGeometry(8.89,.11,8,64),hqYellow,0,19.7,0).rotation.x=Math.PI/2;
-hqMesh(new THREE.CylinderGeometry(.62,.78,2.5,24),hqYellow,0,31.25,0);
-hqMesh(new THREE.CylinderGeometry(.74,.58,2,24),hqYellow,0,32.5,-.78).rotation.x=Math.PI/2;
-hqMesh(new THREE.CircleGeometry(.54,24),hqGlow,0,32.5,-1.79).rotation.y=Math.PI;
-for(const [x,color] of [[11,0xd62d40],[17,0x287bc4]]){
-  const frame=new THREE.MeshStandardMaterial({color,roughness:.42});
-  for(const side of [-1,1])hqBox(frame,x+side*2.15,2.2,-8.58,.32,4.4,.38);
-  hqBox(frame,x,4.3,-8.58,4.55,.32,.38);
-}
-const frontBadge=hqMesh(new THREE.PlaneGeometry(2.7,1.69),badgeMaterial,0,5.05,-7.64);
-frontBadge.rotation.y=Math.PI;
-hqBox(hqBlue,14,5.85,-8.6,13.4,.61,.66);
-hqBox(hqRed,14,5.48,-8.56,13.4,.16,.66);
-for(const x of [11,17])hqBox(hqGlow,x,4.75,-8.75,3.1,.14,.13);
-for(const x of [-3.25,3.25]){
-  hqBox(hqBlue,x,.03,-10,1.25,.06,1.25);
-  hqBox(hqGlow,x,.07,-10,.60,.07,.60);
-}
-// Mission consoles sit clear of the central aisle.
-for(const x of [-3.5,0,3.5]){
-  hqBox(hqBlue,x,19.43,3.85,2.3,.86,.8);
-  hqBox(hqWhite,x,19.9,3.85,2.55,.12,.94);
-  hqBox(hqGlow,x,20.35,4.05,1.74,.72,.12).rotation.x=-.16;
-}
-const liftLabel=document.createElement('canvas');
-liftLabel.width=256;
-liftLabel.height=64;
-const liftInk=liftLabel.getContext('2d');
-liftInk.fillStyle='#163e77';
-liftInk.fillRect(0,0,256,64);
-liftInk.fillStyle='white';
-liftInk.font='bold 27px system-ui';
-liftInk.textAlign='center';
-liftInk.fillText('AUFZUG',128,42);
-const liftTexture=new THREE.CanvasTexture(liftLabel);
-liftTexture.colorSpace=THREE.SRGBColorSpace;
-const liftSign=new THREE.MeshBasicMaterial({map:liftTexture,side:THREE.DoubleSide});
-for(const y of [0,19]){
-  hqBox(hqBlue,-3,y+.025,0,1.9,.05,1.9);
-  hqBox(hqGlow,-3,y+.06,0,1.62,.035,.12);
-  hqMesh(new THREE.PlaneGeometry(1.65,.42),liftSign,-3,y+1.55,.99);
-}
-const liftButton=document.createElement('button');
-liftButton.className='castle-lever';
-Object.assign(liftButton.style,{
-  position:'fixed',bottom:'32%',left:'50%',transform:'translateX(-50%)',zIndex:30,
-  padding:'12px 18px',background:'#163e77',color:'white',border:'1px solid #84e0ff',borderRadius:'12px'
+pawLoader.load('./paw-lookout-3d.glb?v=143',gltf=>{
+  if(!pawCustomSelected)installPawMesh(gltf.scene);
+},undefined,error=>{
+  console.error('3D-Zentrale fehlt',error);
+  if(!pawCustomSelected)toast('3D-Modell fehlt: paw-lookout-3d.glb pruefen');
+  pawStatusMessage('FEHLT: paw-lookout-3d.glb – im Repository-Hauptordner prüfen',true);
 });
-liftButton.hidden=true;
-gameEl.append(liftButton);
+// V143 clean start: do NOT autoload an old personal GLB from IndexedDB.
+// Old data remain preserved but can no longer supersede the packaged model.
+const pawImportInput=document.getElementById('pawModelFile');
+document.getElementById('pawModelImportBtn')?.addEventListener('click',()=>pawImportInput?.click());
+pawImportInput?.addEventListener('change',async()=>{
+  const file=pawImportInput.files?.[0];if(!file)return;pawImportInput.value='';
+  if(!file.name.toLowerCase().endsWith('.glb')||file.size>50*1024*1024){toast('GLB-Datei unter 50 MB waehlen');return;}
+  try{
+    const data=await file.arrayBuffer();pawCustomSelected=true;parseCustomPaw(data);
+    try{await persistCustomPaw(data);}catch(error){console.warn(error);toast('3D-Modell geladen, Speichern fehlgeschlagen');}
+  }catch(error){console.error(error);toast('GLB-Datei konnte nicht gelesen werden');}
+});
+const pawResetBtn=document.getElementById('pawModelResetBtn');
+pawResetBtn?.addEventListener('click',async()=>{
+  try{
+    const db=await modelDatabase();
+    await new Promise((resolve,reject)=>{
+      const tx=db.transaction('tower','readwrite');tx.objectStore('tower').delete('model');
+      tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+    });db.close();
+    pawCustomSelected=false;
+    pawLoader.load('./paw-lookout-3d.glb?v=143',gltf=>{installPawMesh(gltf.scene);toast('Lookout V143 wiederhergestellt');});
+  }catch(error){console.warn(error);toast('Modell-Zuruecksetzen nicht moeglich');}
+});
+function pawPart(group,geom,mat,x,y,z){
+  const m=new THREE.Mesh(geom,mat);m.position.set(x,y,z);group.add(m);return m;
+}
+// Operational two-stop lift. The lower stop is just inside the entrance.
+const liftButton=document.createElement('button');liftButton.className='castle-lever';
+Object.assign(liftButton.style,{position:'fixed',bottom:'32%',left:'50%',transform:'translateX(-50%)',zIndex:10,
+ padding:'12px 18px',background:'#163e77',color:'white',border:'1px solid #84e0ff',borderRadius:'12px'});
+liftButton.hidden=true;gameEl.append(liftButton);
 const liftCar=new THREE.Group();
-const liftFloor=new THREE.Mesh(new THREE.BoxGeometry(1.75,.18,1.75),hqBlue);
-liftFloor.position.y=-.09;
-liftCar.add(liftFloor);
+pawPart(liftCar,new THREE.CylinderGeometry(1.0,1.0,.16,20),hqBlue,0,-.07,0);
 for(const x of [-.82,.82]){
-  const rail=new THREE.Mesh(new THREE.BoxGeometry(.10,1.05,1.7),hqWhite);
-  rail.position.set(x,.52,0);
-  liftCar.add(rail);
+  pawPart(liftCar,new THREE.BoxGeometry(.085,1.07,1.8),hqSilver,x,.50,0);
 }
 pawHQ.add(liftCar);
-const slidePoints=[];
-for(let i=0;i<=64;i++){
-  const t=i/64, angle=1.8+t*Math.PI*1.75;
-  slidePoints.push(new THREE.Vector3(Math.cos(angle)*9.35,18.4*(1-t)+.45,Math.sin(angle)*9.35));
-}
-const slideCurve=new THREE.CatmullRomCurve3(slidePoints);
-hqMesh(new THREE.TubeGeometry(slideCurve,80,.49,10,false),hqRed,0,0,0);
-const slideRail=slidePoints.map(p=>new THREE.Vector3(p.x*1.043,p.y+.29,p.z*1.043));
-hqMesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(slideRail),80,.13,8,false),hqGlow,0,0,0);
-const slideButton=liftButton.cloneNode();
-slideButton.textContent='Rutsche · hinunter';
-gameEl.append(slideButton);
-let pawSlide=null;
-slideButton.addEventListener('click',()=>{
-  if(!slideButton.hidden&&!pawRide&&pawSlide===null)pawSlide=0;
-});
-function updatePawSlide(dt){
-  slideButton.hidden=!gameRunning||!isMeadow()||pawRide!==null||pawSlide!==null||
-    Math.abs(player.y-24)>.25||Math.hypot(player.x+253,player.z-196)>1.6;
-  if(pawSlide===null||!gameRunning)return;
-  pawSlide=Math.min(1,pawSlide+dt/4.5);
-  const point=slideCurve.getPointAt(pawSlide);
-  player.x=pawHQ.position.x+point.x;
-  player.y=pawHQ.position.y+point.y+.55;
-  player.z=pawHQ.position.z+point.z;
-  player.vy=0;
-  player.grounded=false;
-  if(pawSlide===1)pawSlide=null;
-}
-hqBox(hqYellow,-1.5,19.03,5.5,2.25,.06,1.6);
-let pawRide=null;
+let pawRide=null,pawSlide=null,pawPole=null;
 function pawLanding(){
-  if(!gameRunning||!isMeadow()||Math.abs(player.x+254.5)>.83||Math.abs(player.z-190.5)>.83)return null;
-  if(Math.abs(player.y-5)<.22)return 5;
-  if(Math.abs(player.y-24)<.22)return 24;
+  if(!gameRunning||!isMeadow()||Math.abs(player.x+254.5)>.85||Math.abs(player.z-190.5)>.88)return null;
+  if(Math.abs(player.y-5)<.34)return 5;
+  if(Math.abs(player.y-24)<.32)return 24;
   return null;
 }
 liftButton.addEventListener('click',()=>{
-  const floor=pawLanding();
-  if(floor===null||pawRide)return;
+  const floor=pawLanding();if(floor===null||pawRide||pawSlide!==null||pawPole!==null)return;
   pawRide={from:floor,to:floor===5?24:5,elapsed:0};
 });
 function updatePawLift(dt){
-  pawHQ.visible=isMeadow()&&Math.hypot(player.x+251.5,player.z-190.5)<105;
+  pawHQ.visible=isMeadow()&&Math.hypot(player.x+251.5,player.z-190.5)<135;
   const floor=pawLanding();
-  liftButton.hidden=!pawRide&&floor===null;
+  liftButton.hidden=!gameRunning||(!pawRide&&floor===null);
   liftButton.disabled=Boolean(pawRide);
-  liftButton.textContent=pawRide?'Fahrstuhl fährt …':floor===24?'Fahrstuhl · Erdgeschoss':'Fahrstuhl · Leitstelle';
+  liftButton.textContent=pawRide?'Fahrstuhl faehrt …':floor===24?'Fahrstuhl · nach unten':'Fahrstuhl · zur Leitstelle';
   liftCar.visible=Boolean(pawRide)||floor!==null;
-  if(!pawRide){
-    liftCar.position.set(-3,(floor??5)-5,0);
-    return;
-  }
+  if(!pawRide){liftCar.position.set(-3,(floor??5)-5,0);return;}
   if(!gameRunning)return;
-  pawRide.elapsed+=dt;
-  const progress=Math.min(1,pawRide.elapsed/4);
-  const eased=progress*progress*(3-2*progress);
-  player.x=-254.5;
-  player.z=190.5;
-  player.y=THREE.MathUtils.lerp(pawRide.from,pawRide.to,eased)+.025;
-  player.vy=0;
+  pawRide.elapsed+=dt;const progress=Math.min(1,pawRide.elapsed/4.5);const ease=progress*progress*(3-2*progress);
+  player.x=-254.5;player.z=190.5;player.y=THREE.MathUtils.lerp(pawRide.from,pawRide.to,ease)+.025;
+  player.vy=0;player.grounded=false;
   liftCar.position.set(-3,player.y-5-.025,0);
-  if(progress===1){
-    toast(pawRide.to===24?'Paw Patrol · Leitstelle':'Erdgeschoss');
-    pawRide=null;
+  if(progress>=1){player.y=pawRide.to+.025;toast(pawRide.to===24?'Leitstelle erreicht':'Erdgeschoss erreicht');pawRide=null;}
+}
+// A physical open slide trough comes from the GLB. Move the avatar along its helix.
+const slidePoints=[];
+for(let i=0;i<=120;i++){
+  const t=i/120,angle=1.8+t*Math.PI*1.75;
+  slidePoints.push(new THREE.Vector3(9*Math.cos(angle),18.4*(1-t)+.60,9*Math.sin(angle)));
+}
+const slideCurve=new THREE.CatmullRomCurve3(slidePoints);
+const slideButton=liftButton.cloneNode();slideButton.textContent='Rutsche · los!';gameEl.append(slideButton);
+slideButton.addEventListener('click',()=>{
+  if(!slideButton.hidden&&pawSlide===null&&!pawRide&&!pawPole)pawSlide=0;
+});
+function updatePawSlide(dt){
+  const s=slidePoints[0];
+  slideButton.hidden=!gameRunning||!isMeadow()||pawRide!==null||pawPole!==null||pawSlide!==null||
+    Math.abs(player.y-24)>.38||Math.hypot(player.x-pawHQ.position.x-s.x,player.z-pawHQ.position.z-s.z)>2.25;
+  if(pawSlide===null||!gameRunning)return;
+  pawSlide=Math.min(1,pawSlide+dt/4.7);
+  const p=slideCurve.getPointAt(pawSlide);
+  player.x=pawHQ.position.x+p.x;player.y=pawHQ.position.y+p.y+.26;player.z=pawHQ.position.z+p.z;
+  player.vy=0;player.grounded=false;
+  if(pawSlide>=1){pawSlide=null;toast('Unten angekommen!');}
+}
+// Classic Ryder pole, independently usable from the observatory.
+function updatePawPole(dt){
+  if(pawPole===null)return;
+  pawPole=Math.min(1,pawPole+dt/2.5);
+  player.x=pawHQ.position.x+3.18;player.z=pawHQ.position.z-.92;
+  player.y=24-(19*pawPole);player.vy=0;player.grounded=false;
+  if(pawPole>=1){pawPole=null;toast('Rutschstange · Erdgeschoss');}
+}
+const poleRail=new THREE.Mesh(new THREE.CylinderGeometry(.13,.13,19.1,20),hqSilver);
+poleRail.position.set(3.18,9.52,-.92);pawHQ.add(poleRail);
+// The yellow periscope actually rotates when a player uses its control.
+const pawScope=new THREE.Group();pawScope.position.set(0,24.5,0);pawHQ.add(pawScope);
+pawPart(pawScope,new THREE.CylinderGeometry(.65,.67,2.45,28),hqYellow,0,1.22,0);
+pawPart(pawScope,new THREE.CylinderGeometry(.77,.77,2.15,28),hqYellow,0,2.5,-.84).rotation.x=Math.PI/2;
+pawPart(pawScope,new THREE.CylinderGeometry(.69,.69,.14,28),hqBlue,0,2.5,-1.96).rotation.x=Math.PI/2;
+pawPart(pawScope,new THREE.CylinderGeometry(.49,.49,.16,28),hqGlass,0,2.5,-2.05).rotation.x=Math.PI/2;
+let pawScopeTarget=0,pawScopeView=false;
+// Sliding glass entrance doors, open by default so arrival is never blocked.
+const pawDoors=new THREE.Group();
+for(const side of [-1,1]){
+  const panel=new THREE.Mesh(new THREE.BoxGeometry(1.85,3.45,.10),hqGlass);
+  panel.position.set(side*2.16,2.2,-6.26);pawDoors.add(panel);
+}
+pawHQ.add(pawDoors);
+let pawDoorsOpen=true;
+// The mission console has a functional display that changes after each mission selection.
+const missionCanvas=document.createElement('canvas');missionCanvas.width=768;missionCanvas.height=384;
+const missionTexture=new THREE.CanvasTexture(missionCanvas);missionTexture.colorSpace=THREE.SRGBColorSpace;
+const missionDisplay=new THREE.Mesh(new THREE.PlaneGeometry(5.9,2.34),new THREE.MeshBasicMaterial({map:missionTexture,side:THREE.DoubleSide}));
+missionDisplay.position.set(0,21.02,5.89);missionDisplay.rotation.y=Math.PI;pawHQ.add(missionDisplay);
+const pawMissions=[
+ {name:'CHASE',detail:'VERKEHR SICHERN',color:'#327ff3'},
+ {name:'MARSHALL',detail:'BRANDEINSATZ',color:'#f45155'},
+ {name:'RUBBLE',detail:'BERGUNG',color:'#ffc850'},
+ {name:'ROCKY',detail:'RECYCLING',color:'#55c595'},
+ {name:'ZUMA',detail:'WASSERRETTUNG',color:'#ffa24b'},
+ {name:'SKYE',detail:'LUFTRETTUNG',color:'#ed8ec2'}
+];
+let missionIndex=-1;
+function drawPawMission(){
+  const ctx=missionCanvas.getContext('2d');const m=pawMissions[(missionIndex+6)%6];
+  ctx.fillStyle='#091e41';ctx.fillRect(0,0,768,384);
+  const glow=ctx.createLinearGradient(0,0,768,384);glow.addColorStop(0,'#0c3b73');glow.addColorStop(1,'#11325d');
+  ctx.fillStyle=glow;ctx.fillRect(15,12,738,360);
+  for(let x=32;x<760;x+=33){ctx.strokeStyle='#23568d44';ctx.beginPath();ctx.moveTo(x,24);ctx.lineTo(x,360);ctx.stroke();}
+  ctx.fillStyle='#b9eafa';ctx.font='bold 31px sans-serif';ctx.fillText('PAW PATROL  ·  EINSATZZENTRALE',39,65);
+  ctx.fillStyle='#9fd6ef';ctx.font='26px sans-serif';ctx.fillText(missionIndex<0?'WILLKOMMEN IN ADVENTURE BAY':'EINSATZ AKTIV',40,115);
+  ctx.fillStyle=m.color;ctx.fillRect(39,143,8,128);
+  ctx.fillStyle='#fff';ctx.font='bold 54px sans-serif';ctx.fillText(m.name,65,194);
+  ctx.font='bold 27px sans-serif';ctx.fillText(missionIndex<0?'BEREIT FUER NEUE MISSIONEN':m.detail,67,239);
+  ctx.fillStyle='#75d9ff';ctx.font='22px sans-serif';ctx.fillText('NACHRICHT VON DER ZENTRALE',41,330);
+  missionTexture.needsUpdate=true;
+}
+drawPawMission();
+// Six smooth, recognizable colored rescue vehicles; each can be driven using the joystick.
+const pawHomes=[.45,1.08,1.77,4.51,5.18,5.83];
+const carColors=[0x1266cb,0xf13d46,0xf2c12c,0x49b77c,0xe99439,0xe877bd];
+const pawCars=[];
+function createPawCar(i){
+  const c=new THREE.Group();const paint=new THREE.MeshStandardMaterial({color:carColors[i],metalness:.15,roughness:.37});
+  const shade=new THREE.MeshStandardMaterial({color:0x152a45,roughness:.66});
+  const windows=new THREE.MeshPhysicalMaterial({color:0x79cbe3,metalness:.12,roughness:.16,transparent:true,opacity:.79});
+  pawPart(c,new THREE.BoxGeometry(2.25,.60,3.15),paint,0,.57,0);
+  pawPart(c,new THREE.BoxGeometry(1.86,.75,1.50),paint,0,1.16,.28);
+  pawPart(c,new THREE.BoxGeometry(1.58,.53,.08),windows,0,1.16,-.54);
+  pawPart(c,new THREE.BoxGeometry(1.65,.15,.09),hqSilver,0,.56,-1.62);
+  for(const xx of [-1.05,1.05])for(const zz of [-.99,1.06]){
+    const w=pawPart(c,new THREE.CylinderGeometry(.40,.40,.25,20),shade,xx,.42,zz);
+    w.rotation.z=Math.PI/2;
+    pawPart(c,new THREE.CylinderGeometry(.22,.22,.27,18),hqSilver,xx*1.01,.42,zz).rotation.z=Math.PI/2;
   }
+  for(const xx of [-.68,.68]){
+    pawPart(c,new THREE.SphereGeometry(.19,12,10),hqGlow,xx,.70,-1.61);
+    pawPart(c,new THREE.SphereGeometry(.14,10,8),new THREE.MeshBasicMaterial({color:0xff5b43}),xx,.68,1.59);
+  }
+  const sirenMat=new THREE.MeshBasicMaterial({color:i===1?0xffd85f:0x67d4ff});
+  pawPart(c,new THREE.BoxGeometry(.95,.18,.38),sirenMat,0,1.67,.28);
+  const a=pawHomes[i],x=15.1*Math.sin(a),z=15.1*Math.cos(a);
+  c.position.set(x,.28,z);c.rotation.y=a;
+  pawHQ.add(c);pawCars.push(c);
+}
+for(let i=0;i<6;i++)createPawCar(i);
+let pawDrive=null,pawLaunch=null;
+function beginPawDrive(i){
+  if(pawRide||pawSlide!==null||pawPole!==null)return;
+  const c=pawCars[i];pawDrive={car:c,index:i};
+  player.x=pawHQ.position.x+c.position.x;player.z=pawHQ.position.z+c.position.z;
+  player.y=5.55;player.vy=0;toast(pawMissions[i].name+' · Fahrzeug gestartet');
+}
+function exitPawDrive(){
+  if(!pawDrive)return;
+  const v=pawDrive.car;player.x=pawHQ.position.x+v.position.x+2.2;
+  player.z=pawHQ.position.z+v.position.z;player.y=5.25;
+  pawDrive=null;toast('Ausgestiegen');
+}
+function updatePawDrive(dt){
+  if(!pawDrive)return;
+  updateWorldStream();
+  if(pawLaunch!==null){
+    pawDrive.car.position.z-=dt*10.2;pawLaunch-=dt;
+    if(pawLaunch<=0)pawLaunch=null;
+    player.x=pawHQ.position.x+pawDrive.car.position.x;
+    player.z=pawHQ.position.z+pawDrive.car.position.z;
+    player.y=5.6;player.vy=0;return;
+  }
+  const forward=Number(keys.has('KeyW')||keys.has('ArrowUp'))-Number(keys.has('KeyS')||keys.has('ArrowDown'))-stick.y;
+  const sideways=Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'))+stick.x;
+  const c=pawDrive.car,scale=Math.min(1,Math.hypot(forward,sideways));
+  if(scale>.06){
+    const dx=(Math.cos(yaw)*sideways-Math.sin(yaw)*forward)/Math.max(1,Math.hypot(forward,sideways));
+    const dz=(-Math.sin(yaw)*sideways-Math.cos(yaw)*forward)/Math.max(1,Math.hypot(forward,sideways));
+    const wx=pawHQ.position.x+c.position.x+dx*dt*9.4;
+    const wz=pawHQ.position.z+c.position.z+dz*dt*9.4;
+    if(Math.hypot(wx+251.5,wz-190.5)<80){
+      c.position.x=wx-pawHQ.position.x;c.position.z=wz-pawHQ.position.z;
+      c.rotation.y=Math.atan2(-dx,-dz);
+    }
+  }
+  player.x=pawHQ.position.x+c.position.x;player.z=pawHQ.position.z+c.position.z;
+  player.y=terrainHeight(Math.floor(player.x),Math.floor(player.z))+.6;player.vy=0;player.grounded=true;
+}
+const pawAction=document.createElement('button');pawAction.type='button';pawAction.className='castle-lever';
+Object.assign(pawAction.style,{position:'fixed',left:'50%',bottom:'45%',transform:'translateX(-50%)',
+ maxWidth:'92vw',whiteSpace:'nowrap',zIndex:10,padding:'12px 17px',borderRadius:'13px',
+ background:'#f5f7fa',border:'2px solid #1773bb',color:'#173f6a',fontWeight:'800',
+ boxShadow:'0 5px 18px #102b5260'});
+pawAction.hidden=true;gameEl.append(pawAction);
+let pawActionKind=null,pawActionIndex=-1;
+function closestPawAction(){
+  const y=player.y,x=player.x-pawHQ.position.x,z=player.z-pawHQ.position.z;
+  if(pawDrive)return {kind:'exit',text:'🚙 Fahrzeug verlassen'};
+  if(pawScopeView)return {kind:'scope',text:'🔭 Periskop verlassen'};
+  if(Math.abs(y-24)<.5){
+    if(Math.hypot(x,z-4.6)<3.0)return {kind:'mission',text:'🐾 Einsatz an der Leitstelle starten'};
+    if(Math.hypot(x-4.65,z-3.60)<2.1)return {kind:'scope',text:'🔭 Periskop drehen'};
+    if(Math.hypot(x-3.18,z+.92)<1.5)return {kind:'pole',text:'↧ Ryders Rutschstange'};
+  }
+  if(Math.abs(y-5.2)<2.0){
+    for(let i=0;i<pawHomes.length;i++){
+      const a=pawHomes[i],hx=15.1*Math.sin(a),hz=15.1*Math.cos(a);
+      if(Math.hypot(x-hx,z-hz)<3.8)return {kind:'drive',index:i,text:'🚙 '+pawMissions[i].name+' · Fahrzeug fahren'};
+    }
+    if(Math.hypot(x,z+8.2)<2.8)return {kind:'doors',text:pawDoorsOpen?'🚪 Eingang schließen':'🚪 Eingang öffnen'};
+    if(Math.hypot(x-10.7,z+8.65)<3.2)return {kind:'launch',text:'🚀 Fahrzeugrampe benutzen'};
+  }
+  return null;
+}
+pawAction.addEventListener('click',()=>{
+  if(!gameRunning)return;
+  switch(pawActionKind){
+    case 'mission':missionIndex=(missionIndex+1)%pawMissions.length;drawPawMission();toast('Einsatz: '+pawMissions[missionIndex].detail);break;
+    case 'scope':
+      pawScopeView=!pawScopeView;if(!pawScopeView)pawScopeTarget=pawScope.rotation.y;
+      toast(pawScopeView?'Periskop · mit Wischen umsehen':'Periskop verlassen');break;
+    case 'pole':if(!pawRide&&pawSlide===null)pawPole=0;break;
+    case 'drive':beginPawDrive(pawActionIndex);break;
+    case 'exit':exitPawDrive();break;
+    case 'doors':pawDoorsOpen=!pawDoorsOpen;toast(pawDoorsOpen?'Eingang offen':'Eingang geschlossen');break;
+    case 'launch':
+      if(!pawDrive){missionIndex=(missionIndex+1)%6;drawPawMission();beginPawDrive(missionIndex);
+        if(pawDrive){pawDrive.car.position.set(10.7,.3,-8.65);pawDrive.car.rotation.y=0;pawLaunch=1.0;}
+      }
+      toast('Fahrzeug-Start! Mit Joystick steuern');break;
+  }
+});
+function updatePawFeatures(dt){
+  updatePawPole(dt);
+  if(!gameRunning||!isMeadow()||Math.hypot(player.x+251.5,player.z-190.5)>86||pawRide||pawSlide!==null||pawPole!==null){
+    pawAction.hidden=true;
+  }else{
+    const action=closestPawAction();pawAction.hidden=!action;
+    if(action){pawActionKind=action.kind;pawActionIndex=action.index??-1;pawAction.textContent=action.text;}
+  }
+  if(pawScopeView)pawScopeTarget=yaw;
+  const d=pawScopeTarget-pawScope.rotation.y;
+  if(Math.abs(d)>.001)pawScope.rotation.y+=d*Math.min(1,dt*3);
+  pawDoors.children.forEach((p,i)=>{
+    const side=i===0?-1:1,target=(pawDoorsOpen?2.16:.95)*side;
+    p.position.x+=(target-p.position.x)*Math.min(1,dt*5);
+  });
 }
 function crossPawPortal(oldX,oldZ){
-  if(!gameRunning||!isMeadow()||player.y<4.9||player.y>9)return;
+  if(!gameRunning||!isMeadow()||player.y<4.9||player.y>9||pawDrive)return;
   if((oldX<-138)!==(player.x<-138)){
     const crossing=(-138-oldX)/(player.x-oldX);
     if(Math.abs(oldZ+(player.z-oldZ)*crossing+58.5)<1.95){
-      teleportTo(-252,177,'Paw Patrol · Zentrale',-252,190);
-      return;
+      teleportTo(-252,177,'PAW Patrol · Original-Lookout',-252,190);return;
     }
   }
   if((oldZ<174)!==(player.z<174)){
     const crossing=(174-oldZ)/(player.z-oldZ);
     if(Math.abs(oldX+(player.x-oldX)*crossing+252)<1.95)
-      teleportTo(-135,-59,'Zurück bei Schloss Nachtrabe',-38,-58.5);
+      teleportTo(-135,-59,'Zurueck bei Schloss Nachtrabe',-38,-58.5);
+  }
+}
+
+function mobPart(group,material,x,y,z,w,h,d){
+  const part=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);
+  part.position.set(x,y,z);
+  group.add(part);
+  return part;
+}
+const diamond=new THREE.MeshStandardMaterial({color:0x38ced9,metalness:.38,roughness:.35});
+const diamondEdge=new THREE.MeshStandardMaterial({color:0x186678,roughness:.45});
+const guardianEyes=new THREE.MeshBasicMaterial({color:0xc6ffff});
+const diamondGuards=[-1,1].map(side=>{
+  const guard=new THREE.Group();
+  mobPart(guard,diamond,0,1.85,0,1.13,1.06,.62);
+  mobPart(guard,diamond,0,2.7,0,.73,.65,.66);
+  for(const hand of [-1,1]){
+    mobPart(guard,diamondEdge,hand*.3,.52,0,.4,1.04,.48);
+    mobPart(guard,diamond,hand*.79,1.56,0,.42,1.35,.5);
+    mobPart(guard,guardianEyes,hand*.16,2.73,.337,.14,.085,.027);
+  }
+  mobPart(guard,diamondEdge,0,1.4,.33,.88,.15,.055);
+  guard.position.set(netherPortalSite.x-1.2,MEADOW_HEIGHT,netherPortalSite.z+side*3.15);
+  guard.rotation.y=-Math.PI/2;
+  scene.add(guard);
+  return guard;
+});
+const creeperFace=new THREE.MeshBasicMaterial({color:0x152516});
+const basinCreepers=[[0,-12],[0,17],[-15,0],[17,0],[0,-25]].map(([dx,dz])=>{
+  const group=new THREE.Group();
+  const skin=new THREE.MeshStandardMaterial({color:0x558735,map:makeCreeperTexture(),roughness:.95});
+  mobPart(group,skin,0,1.03,0,.53,1.12,.44);
+  mobPart(group,skin,0,1.87,0,.72,.72,.72);
+  for(const x of [-.17,.17])mobPart(group,creeperFace,x,1.97,.366,.15,.15,.02);
+  mobPart(group,creeperFace,0,1.78,.366,.16,.19,.02);
+  for(const x of [-.116,.116])mobPart(group,creeperFace,x,1.71,.366,.074,.15,.02);
+  const feet=[];
+  for(const x of [-.18,.18])for(const z of [-.23,.23])
+    feet.push(mobPart(group,skin,x,.24,z,.31,.48,.32));
+  const x=netherExit.x+dx+.5,z=netherExit.z+dz+.5;
+  group.position.set(x,MEADOW_HEIGHT,z);
+  group.visible=false;
+  scene.add(group);
+  return {group,skin,feet,x,z,fuse:0,cooldown:0};
+});
+function makeCreeperTexture(){
+  const canvas=document.createElement('canvas');
+  canvas.width=canvas.height=16;
+  const ctx=canvas.getContext('2d');
+  const colors=['#b3d36c','#82aa55','#547c44','#769e49','#9abc63'];
+  for(let x=0;x<16;x++)for(let y=0;y<16;y++){
+    ctx.fillStyle=colors[Math.floor(pixelHash(x,y,110)*colors.length)]||colors[0];
+    ctx.fillRect(x,y,1,1);
+  }
+  const texture=new THREE.CanvasTexture(canvas);
+  texture.colorSpace=THREE.SRGBColorSpace;
+  texture.magFilter=THREE.NearestFilter;
+  return texture;
+}
+function updateBasinMobs(dt,now){
+  for(const guard of diamondGuards)
+    guard.visible=Math.hypot(player.x-guard.position.x,player.z-guard.position.z)<100;
+  const inside=inNetherBasin(player.x,player.z);
+  for(const mob of basinCreepers){
+    const {group,skin,feet}=mob;
+    group.visible=inside&&mob.cooldown<=0;
+    if(!inside||!gameRunning){mob.fuse=0;skin.emissive.setHex(0);continue;}
+    if(mob.cooldown>0){mob.cooldown-=dt;continue;}
+    const {x,z}=group.position;
+    const dx=player.x-x,dz=player.z-z,distance=Math.hypot(dx,dz);
+    const hunting=distance<19&&Math.abs(player.y-MEADOW_HEIGHT)<2;
+    if(hunting)group.rotation.y=Math.atan2(dx,dz);
+    if(hunting&&distance<2.2){
+      mob.fuse+=dt;
+      skin.emissive.setHex(Math.sin(mob.fuse*25)>0?0xbcd99a:0);
+      if(mob.fuse>=1.3){
+        mob.fuse=0;mob.cooldown=7;group.visible=false;skin.emissive.setHex(0);
+        group.position.set(mob.x,MEADOW_HEIGHT,mob.z);
+        teleportTo(netherExit.x,netherExit.z+4,'Creeper-Explosion · zurück am Portal',netherExit.x,netherExit.z+20);
+      }
+      continue;
+    }
+    mob.fuse=0;
+    skin.emissive.setHex(0);
+    if(!hunting)continue;
+    const step=dt*2.65/distance;
+    const walkable=(nx,nz)=>{
+      const bx=Math.floor(nx),bz=Math.floor(nz);
+      return inNetherBasin(bx,bz)&&!!get(bx,4,bz)&&get(bx,4,bz)!=='lavaGlow'&&
+        !get(bx,5,bz)&&!get(bx,6,bz)&&!get(bx,7,bz);
+    };
+    if(walkable(x+dx*step,z))group.position.x+=dx*step;
+    if(walkable(group.position.x,z+dz*step))group.position.z+=dz*step;
+    feet.forEach((foot,index)=>{foot.rotation.x=((index===0||index===3)?1:-1)*Math.sin(now*.014)*.24;});
   }
 }
 function updatePawPortal(now){
+  netherVeil.visible=isMeadow()&&
+    Math.hypot(player.x-netherVeil.position.x,player.z-netherPortalSite.z)<100&&
+    netherPortalFrame.every(([x,y,z])=>get(x,y,z)==='obsidian');
+  if(netherVeil.visible)netherVeilMaterial.uniforms.time.value=now*.001;
   pawPortal.visible=isMeadow()&&Math.hypot(player.x+138,player.z+58.5)<120;
   pawReturn.visible=isMeadow()&&Math.hypot(player.x+252,player.z-174)<120;
-  if(pawPortal.visible||pawReturn.visible)veil.opacity=.23+.07*Math.sin(now*.003);
+  pawSurface.material.uniforms.time.value=now*.001;
+  netherReturn.visible=inNetherBasin(player.x,player.z);
+  netherReturn.material.uniforms.time.value=now*.001;
+  for(const {group,surface,portal} of travelGates){
+    group.visible=Math.hypot(player.x-portal.x,player.z-portal.z)<120;
+    surface.material.uniforms.time.value=now*.001;
+  }
 }
 const charizard=new THREE.Group();
 charizard.position.set(240.5,5.04,84);
@@ -6235,7 +6657,7 @@ function selectBlock(type){
 document.querySelectorAll('.slot').forEach(el=>el.addEventListener('click',()=>selectBlock(el.dataset.block)));
 function refreshNachtrabeMenu(){
   document.body.classList.add('meadow-mode');
-  $('worldSubtitle').textContent='Schloss Nachtrabe · V137';
+  $('worldSubtitle').textContent='PAW Patrol · V143';
   regionName='';updateRegion();
 }
 $('fortressBtn').addEventListener('click',()=>{
@@ -6265,7 +6687,7 @@ let regionName='';
 function updateRegion(){
   if(isMeadow()){
     const inside=player.z<NETHER_BOUNDS.maxZ+5&&player.z>NETHER_BOUNDS.minZ-6&&Math.abs(player.x)<79;
-    let name=inFuture(player.x)?'◇ Hightech-Welt':inside?'🏰 Schloss Nachtrabe':'🌿 Große Wiese';
+    let name=inNetherBasin(player.x,player.z)?'Nether · Glutbecken':inFuture(player.x)?'◇ Hightech-Welt':inside?'🏰 Schloss Nachtrabe':'🌿 Große Wiese';
     if(Math.hypot(player.x+252,player.z-190)<42)name='🐾 Paw Patrol · Zentrale';
     if(player.y<4.45&&player.x>=13&&player.x<26&&player.z>=-24&&player.z<1)name="🕯️ Bunker";
     if(player.x>=-39&&player.x<-16&&player.z>=-77&&player.z<=-61&&player.y<13){
@@ -6280,13 +6702,15 @@ function updateRegion(){
     }else if(player.z<-43&&player.z>=-59&&Math.abs(player.x)<29){
       name='🔥 Innenhof';
     }
-    if(regionName!==name){regionName=name;$('regionLabel').textContent=name;}
+    if(regionName!==name){regionName=name;$('regionLabel').textContent=name;
+      $('worldSubtitle').textContent=name.includes('Paw Patrol')?'PAW Patrol · V143':'Schloss Nachtrabe · V143';}
     return;
   }
   let b=biomeAt(Math.floor(player.x),Math.floor(player.z));
   if(b==='fels'&&player.x>23&&player.z>=-11&&player.z<=-1&&player.y<11)b='hoehle';
   const name=Math.hypot(player.x-RUIN.x,player.z-RUIN.z)<17?'🗝️ Schattenruine':Math.hypot(player.x-CAMP.x,player.z-CAMP.z)<13?'⛺ Waldlager':Math.hypot(player.x-LOOKOUT.x,player.z-LOOKOUT.z)<14?'🏰 Himmelswarte':Math.hypot(player.x-FALL.x,player.z-FALL.z)<15?'💦 Kristallfall':b==='hoehle'?'🪨 Berghöhle':regions[b];
-  if(name!==regionName){regionName=name;$('regionLabel').textContent=name;}
+  if(name!==regionName){regionName=name;$('regionLabel').textContent=name;
+    $('worldSubtitle').textContent='Abenteuerwelt · V143';}
 }
 const cameraButton=$('cameraBtn');
 function syncCameraButton(){
@@ -6328,6 +6752,7 @@ resize();
 window.addEventListener('resize',resize);
 window.addEventListener('orientationchange',()=>setTimeout(resize,180));
 baseWorld();loadEdits();rebuild();syncUndo();applyLighting();updateCamera();applyGraphicMode();refreshNachtrabeMenu();
+window.__blockweltStarted=true;
 $('loading').remove();
 let lastTime=performance.now(),lastTarget=0,lastCompass=0;
 function animate(now){
@@ -6338,7 +6763,7 @@ function animate(now){
   updateWardrobe(dt);
   if(study.visible)studyLight.intensity=7.4+Math.sin(now*.006)*.28+Math.sin(now*.017)*.15;
   updateHearth(now);
-  if(!pawRide&&pawSlide===null)updateMovement(dt);crossRainbowPortal(oldZ);crossPawPortal(oldX,oldZ);updatePawPortal(now);updatePawLift(dt);updatePawSlide(dt);updateBattle(dt);updateCastlePokemon(dt);updateCharizard(now);animateGuardian(dt,Math.hypot(player.x-oldX,player.z-oldZ));updateCamera(dt);updateRegion();updateCreatures(dt);updateNetherCreatures(dt,now);
+  if(!pawRide&&pawSlide===null&&pawPole===null)updateMovement(dt);if(!crossNetherPortal(oldX,oldZ)){crossRainbowPortal(oldZ);crossPawPortal(oldX,oldZ);}updatePawPortal(now);updateBasinMobs(dt,now);updatePawLift(dt);updatePawSlide(dt);updatePawFeatures(dt);updateBattle(dt);updateCastlePokemon(dt);updateCharizard(now);animateGuardian(dt,Math.hypot(player.x-oldX,player.z-oldZ));updateCamera(dt);updateRegion();updateCreatures(dt);updateNetherCreatures(dt,now);
   animateWorkshopSparkles(now);
   for(const {flame,light,torch,power,site} of bunkerStairLights){
     if(!torch.visible||!light.visible)continue;

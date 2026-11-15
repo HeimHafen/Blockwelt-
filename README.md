@@ -1,41 +1,71 @@
-# BLOCKWELT – NEUSTART (V137)
+# Blockwelt V143 – Neue 3D-Modell-Zentrale
 
-Dies ist der originale, gesicherte Blockwelt-Spielcode aus `Blockwelt-main.zip` (V137).
-Keine Dateien oder Modelle des Weißen Hauses. Keine nachträglich eingemischten V138–V143-Tests.
+Dieses Paket ist fuer dein neues Repository gedacht.
+Die bisherige Zentrale wird durch die neue 3D-Modell-Zentrale ersetzt.
 
-## Was ist enthalten?
+Enthaltene Dateien:
+- index.html
+- styles.css
+- game.js
+- nachtrabe.js
+- paw-lookout-3d.glb
 
-- `index.html` – Spieleinstieg
-- `styles.css` – Gestaltung und Bedienoberfläche
-- `game.js` – Spiel und Weltlogik
-- `nachtrabe.js` – Architektur von Schloss Nachtrabe
+Installation auf GitHub:
+1. ZIP entpacken.
+2. Alle 6 Dateien direkt ins Hauptverzeichnis des Repositorys hochladen.
+3. Keine Unterordner anlegen.
+4. Danach GitHub Pages auf main / (root) stellen.
 
-Die Welt enthält neben Schloss Nachtrabe auch ihre originalen weiteren Spielbereiche, unter anderem den älteren PAW-Patrol-Bereich. Es handelt sich **nicht** um die später geplante originale, voll funktionale GLB-Zentrale.
+# BLOCKWELT V143 – VOLLSTÄNDIGES ERSATZPAKET
 
-## Installation in GitHub
+Dies ist ein sauberer SPIELSTAND aus V142 mit dem begehbaren, selbst erstellten
+PAW-Lookout als echtem GLB-3D-Modell. Keine Zusatzdateien vom Weißen Haus oder
+von Burg Hohenzollern. Alle fünf Spieldateien liegen DIREKT im ZIP-Hauptordner.
 
-1. In GitHub unter Owner `HeimHafen` ein neues Repository `Blockwelt` erstellen; **Public** wählen.
-2. Am besten **kein README initialisieren**, da dieses Paket eine eigene README mitbringt.
-3. Dieses ZIP auf dem iPhone entpacken. **Die fünf enthaltenen Dateien** direkt im Hauptverzeichnis des Repositories hochladen – nicht den ZIP-Ordner und nicht das ZIP als Datei.
-4. Commit auf `main` durchführen.
-5. Einstellungen → Pages → Build and deployment: **Deploy from a branch**, Branch **main**, Ordner **/(root)**; speichern.
-6. Website unter `https://heimhafen.github.io/Blockwelt/` öffnen.
-7. Spielbetrieb auf iPhone testen: Menü, Bewegung, Schloss, Portale, Speichern, Laden.
+## Was korrigiert wurde
+- Kein automatisches Überschreiben der mitgelieferten 3D-Zentrale mehr durch
+  alte, lokal gespeicherte GLB-Importe (IndexedDB bleibt unangetastet).
+- Ein sichtbarer GLB-Ladestatus im Menü zeigt, ob die Zentrale wirklich lädt.
+- Meldung bei nicht startendem Spiel statt dauerhaft hängendem Ladebildschirm.
+- Alle Versions- und Cache-Parameter von V142 auf V143.
+- Fünf benötigte Dateien ohne fremde Modelle oder zusätzliche Ordner.
 
-Hinweis: Falls GitHub das alte Repository nicht sofort wieder unter `Blockwelt` zulässt, nimm `Blockwelt-Neustart` und passe den Pages-Link entsprechend an.
+## So wird die Version vollständig ersetzt (Working Copy / GitHub)
+1. Im bisherigen Spiel unter "Welt sichern" die persönliche Welt als JSON
+   exportieren. Danach das GitHub-Repository zur Sicherheit ebenfalls sichern.
+2. Im Repository HeimHafen/Blockwelt im gewünschten Branch ALLE alten
+   WEB-SPIELDATEIEN im Hauptverzeichnis entfernen, die NICHT zur untenstehenden
+   Fünferliste gehören. Alte Website-Dateien bleiben andernfalls bestehen.
+   WICHTIG: Vorher prüfen, ob darin Inhalte anderer Projekte stecken.
+3. ZIP in der Dateien-App entpacken und die FÜNF Spieldateien einzeln in das
+   Hauptverzeichnis des Repositories kopieren; NICHT das ZIP selbst hochladen
+   und KEINEN Unterordner Blockwelt_V143_KOMPLETT_ERSETZEN erstellen.
+4. Im Repository-Hauptverzeichnis müssen exakt diese fünf Web-Spieldateien
+   vorhanden sein: index.html, styles.css, game.js, nachtrabe.js,
+   paw-lookout-3d.glb. Eine vorhandene .nojekyll oder CNAME-Datei, falls nötig,
+   darf zusätzlich erhalten bleiben.
+5. Git committen / pushen (Source: refs/heads/main; Remote: refs/heads/main;
+   Force Push: AUS). Für eine sichere Vorabprüfung zunächst Testbranch nutzen.
+6. https://heimhafen.github.io/Blockwelt/?v=143 im Safari-Browser laden.
+   Oben muss V143 stehen. Menü > Welt & Grafik zeigt unter dem GLB-Import
+   "3D-Modell: Geladen – begehbare Zentrale ist aktiv".
+7. Bei Bedarf die vorher gesicherte JSON-Welt importieren. Nicht auf
+   "Welt neu anfangen" tippen. Keine Safari-Website-Daten löschen.
 
-## Wichtige Datensicherheit
+## Diagnose, falls V143 immer noch nicht startet
+- Noch V142/V140 oben? Die aktualisierte index.html wurde nicht geladen,
+  der Cache ist noch alt oder du bist auf einem anderen Branch.
+- GLB-Status "FEHLT"? Die Datei paw-lookout-3d.glb muss mit exakt diesem Namen
+  direkt neben index.html und game.js liegen (Groß-/Kleinschreibung zählt).
+- Bildschirm meldet Modulfehler? Das Spiel lädt Three.js 0.187.0 über jsDelivr;
+  eine Netzwerksperre oder fehlende Internetverbindung verhindert den Start.
+- Weitere alte Gebäudeteile? Persönliche Browser-Bauänderungen können erhalten
+  bleiben; das Ersetzen der Repository-Dateien löscht gespeicherte Blöcke nicht.
 
-Der persönliche Spielstand war im Browser gespeichert, nicht im GitHub-Repository. Ein gelöschtes Repository enthält keine Sicherung der privaten Spielstände. Safari-Sitedaten nicht löschen; bei vorhandenem JSON-Export im Spielmenü `Welt laden` nutzen.
+WICHTIG: Die ZIP-Datei verändert dein GitHub-Repository nicht automatisch.
+Sie ist ein VOLLSTÄNDIGES Ersatzpaket, keine serverseitige Aktualisierung.
+Diese Rekonstruktion ist keine offizielle Original-GLB von PAW Patrol.
 
-## Technische Grenzen
-
-Die lokalen vier Spieldateien und JavaScript-Syntax wurden geprüft. Die 3D-Bibliothek Three.js wird über das Internet geladen. Dies ist ein wiederhergestellter, noch nicht auf deinem iPhone erneut getesteter Basisstand.
-
-## Working Copy
-
-- Zusammenfassung: `Blockwelt Neustart – V137 Schloss Nachtrabe wiederhergestellt`
-- Detaillierte Informationen: `Saubere Wiederherstellung des gesicherten Blockwelt-Codes ohne fremde 3D-Projektdateien; HTML-Versionsanzeige korrigiert.`
-- Source-Referenz: `refs/heads/main`
-- Vorhandene oder neue Remote-Referenz: `refs/heads/main`
-- Force Push: **Aus**
+PRÜFSTAND: Dateipfade, alle fünf Dateien, glTF-Struktur und JavaScript-Syntax
+geprüft; eine vollständige Laufprüfung im echten iPhone-Safari konnte hier
+nicht durchgeführt werden. Bitte zunächst als Testversion betrachten.
