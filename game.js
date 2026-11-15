@@ -1,5 +1,5 @@
-import {buildCastleArchitecture,dressDoorway,interiorLampSites,wingWindows,towerWindows,buildLowerCellars,cellarLamps} from './nachtrabe.js?v=144';
-// BLOCKWELT V144 — begehbarer originalgetreuer Lookout-Nachbau auf GLB-Basis.
+import {buildCastleArchitecture,dressDoorway,interiorLampSites,wingWindows,towerWindows,buildLowerCellars,cellarLamps} from './nachtrabe.js?v=145';
+// BLOCKWELT V145 — begehbarer originalgetreuer Lookout-Nachbau auf GLB-Basis.
 // V24 ist die feste Grundlage. Keine Änderungen an Terrain-, Speicher- oder Werkstatt-IDs.
 // Südliche Werkstätten öffnen sich jetzt zum Dorfplatz, mit sicheren
 // Wegen, individuell schaltbaren Fassadenzeichen und freiem Brunnenblick.
@@ -5435,21 +5435,21 @@ const pawRed=new THREE.MeshStandardMaterial({color:0xcf2440,roughness:.45});
 const pawBlue=new THREE.MeshStandardMaterial({color:0x174eaa,roughness:.4});
 const pawSilver=new THREE.MeshStandardMaterial({color:0xe6ebf4,metalness:.55,roughness:.32});
 const pawLight=new THREE.MeshBasicMaterial({color:0x7ce3ff});
-function pawPart(geometry,material,x,y,z){
+function createPawPortalPart(geometry,material,x,y,z){
   const mesh=new THREE.Mesh(geometry,material);
   mesh.position.set(x,y,z);
   pawPortal.add(mesh);
   return mesh;
 }
 for(const side of [-1,1]){
-  pawPart(new THREE.BoxGeometry(.88,3,.85),pawBlue,side*2.6,1.5,0);
-  pawPart(new THREE.BoxGeometry(1.2,.34,1.1),pawSilver,side*2.6,.17,0);
+  createPawPortalPart(new THREE.BoxGeometry(.88,3,.85),pawBlue,side*2.6,1.5,0);
+  createPawPortalPart(new THREE.BoxGeometry(1.2,.34,1.1),pawSilver,side*2.6,.17,0);
   for(const face of [-1,1])
-    pawPart(new THREE.BoxGeometry(.12,2.45,.07),pawLight,side*2.6,1.58,face*.45);
+    createPawPortalPart(new THREE.BoxGeometry(.12,2.45,.07),pawLight,side*2.6,1.58,face*.45);
 }
-pawPart(new THREE.TorusGeometry(2.6,.44,10,40,Math.PI),pawRed,0,3,0);
+createPawPortalPart(new THREE.TorusGeometry(2.6,.44,10,40,Math.PI),pawRed,0,3,0);
 for(const face of [-1,1])
-  pawPart(new THREE.TorusGeometry(2.6,.08,8,40,Math.PI),pawSilver,0,3,face*.4);
+  createPawPortalPart(new THREE.TorusGeometry(2.6,.08,8,40,Math.PI),pawSilver,0,3,face*.4);
 const portalCanvas=document.createElement('canvas');
 portalCanvas.width=512;
 portalCanvas.height=320;
@@ -5475,7 +5475,7 @@ const badgeTexture=new THREE.CanvasTexture(portalCanvas);
 badgeTexture.colorSpace=THREE.SRGBColorSpace;
 const badgeMaterial=new THREE.MeshBasicMaterial({map:badgeTexture,transparent:true});
 for(const face of [-1,1])
-  pawPart(new THREE.PlaneGeometry(2.7,1.69),badgeMaterial,0,5.52,face*.47).rotation.y=face===1?0:Math.PI;
+  createPawPortalPart(new THREE.PlaneGeometry(2.7,1.69),badgeMaterial,0,5.52,face*.47).rotation.y=face===1?0:Math.PI;
 const pawSurface=portalSurface(4.25,3,'#134389','#7ad9ff');
 pawSurface.position.y=1.5;
 pawPortal.add(pawSurface);
@@ -5558,7 +5558,7 @@ async function restoreCustomPaw(){
     if(saved){pawCustomSelected=true;parseCustomPaw(saved,false);}
   }catch(error){console.warn('Kein lokal importiertes PAW-GLB',error);}
 }
-pawLoader.load('./paw-lookout-3d.glb?v=144',gltf=>{
+pawLoader.load('./paw-lookout-3d.glb?v=145',gltf=>{
   if(!pawCustomSelected)installPawMesh(gltf.scene);
 },undefined,error=>{
   console.error('3D-Zentrale fehlt',error);
@@ -5586,10 +5586,10 @@ pawResetBtn?.addEventListener('click',async()=>{
       tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
     });db.close();
     pawCustomSelected=false;
-    pawLoader.load('./paw-lookout-3d.glb?v=144',gltf=>{installPawMesh(gltf.scene);toast('Lookout V143 wiederhergestellt');});
+    pawLoader.load('./paw-lookout-3d.glb?v=145',gltf=>{installPawMesh(gltf.scene);toast('Lookout V145 wiederhergestellt');});
   }catch(error){console.warn(error);toast('Modell-Zuruecksetzen nicht moeglich');}
 });
-function pawPart(group,geom,mat,x,y,z){
+function createPawHQPart(group,geom,mat,x,y,z){
   const m=new THREE.Mesh(geom,mat);m.position.set(x,y,z);group.add(m);return m;
 }
 // Operational two-stop lift. The lower stop is just inside the entrance.
@@ -5598,9 +5598,9 @@ Object.assign(liftButton.style,{position:'fixed',bottom:'32%',left:'50%',transfo
  padding:'12px 18px',background:'#163e77',color:'white',border:'1px solid #84e0ff',borderRadius:'12px'});
 liftButton.hidden=true;gameEl.append(liftButton);
 const liftCar=new THREE.Group();
-pawPart(liftCar,new THREE.CylinderGeometry(1.0,1.0,.16,20),hqBlue,0,-.07,0);
+createPawHQPart(liftCar,new THREE.CylinderGeometry(1.0,1.0,.16,20),hqBlue,0,-.07,0);
 for(const x of [-.82,.82]){
-  pawPart(liftCar,new THREE.BoxGeometry(.085,1.07,1.8),hqSilver,x,.50,0);
+  createPawHQPart(liftCar,new THREE.BoxGeometry(.085,1.07,1.8),hqSilver,x,.50,0);
 }
 pawHQ.add(liftCar);
 let pawRide=null,pawSlide=null,pawPole=null;
@@ -5663,10 +5663,10 @@ const poleRail=new THREE.Mesh(new THREE.CylinderGeometry(.13,.13,19.1,20),hqSilv
 poleRail.position.set(3.18,9.52,-.92);pawHQ.add(poleRail);
 // The yellow periscope actually rotates when a player uses its control.
 const pawScope=new THREE.Group();pawScope.position.set(0,24.5,0);pawHQ.add(pawScope);
-pawPart(pawScope,new THREE.CylinderGeometry(.65,.67,2.45,28),hqYellow,0,1.22,0);
-pawPart(pawScope,new THREE.CylinderGeometry(.77,.77,2.15,28),hqYellow,0,2.5,-.84).rotation.x=Math.PI/2;
-pawPart(pawScope,new THREE.CylinderGeometry(.69,.69,.14,28),hqBlue,0,2.5,-1.96).rotation.x=Math.PI/2;
-pawPart(pawScope,new THREE.CylinderGeometry(.49,.49,.16,28),hqGlass,0,2.5,-2.05).rotation.x=Math.PI/2;
+createPawHQPart(pawScope,new THREE.CylinderGeometry(.65,.67,2.45,28),hqYellow,0,1.22,0);
+createPawHQPart(pawScope,new THREE.CylinderGeometry(.77,.77,2.15,28),hqYellow,0,2.5,-.84).rotation.x=Math.PI/2;
+createPawHQPart(pawScope,new THREE.CylinderGeometry(.69,.69,.14,28),hqBlue,0,2.5,-1.96).rotation.x=Math.PI/2;
+createPawHQPart(pawScope,new THREE.CylinderGeometry(.49,.49,.16,28),hqGlass,0,2.5,-2.05).rotation.x=Math.PI/2;
 let pawScopeTarget=0,pawScopeView=false;
 // Sliding glass entrance doors, open by default so arrival is never blocked.
 const pawDoors=new THREE.Group();
@@ -5713,21 +5713,21 @@ function createPawCar(i){
   const c=new THREE.Group();const paint=new THREE.MeshStandardMaterial({color:carColors[i],metalness:.15,roughness:.37});
   const shade=new THREE.MeshStandardMaterial({color:0x152a45,roughness:.66});
   const windows=new THREE.MeshPhysicalMaterial({color:0x79cbe3,metalness:.12,roughness:.16,transparent:true,opacity:.79});
-  pawPart(c,new THREE.BoxGeometry(2.25,.60,3.15),paint,0,.57,0);
-  pawPart(c,new THREE.BoxGeometry(1.86,.75,1.50),paint,0,1.16,.28);
-  pawPart(c,new THREE.BoxGeometry(1.58,.53,.08),windows,0,1.16,-.54);
-  pawPart(c,new THREE.BoxGeometry(1.65,.15,.09),hqSilver,0,.56,-1.62);
+  createPawHQPart(c,new THREE.BoxGeometry(2.25,.60,3.15),paint,0,.57,0);
+  createPawHQPart(c,new THREE.BoxGeometry(1.86,.75,1.50),paint,0,1.16,.28);
+  createPawHQPart(c,new THREE.BoxGeometry(1.58,.53,.08),windows,0,1.16,-.54);
+  createPawHQPart(c,new THREE.BoxGeometry(1.65,.15,.09),hqSilver,0,.56,-1.62);
   for(const xx of [-1.05,1.05])for(const zz of [-.99,1.06]){
-    const w=pawPart(c,new THREE.CylinderGeometry(.40,.40,.25,20),shade,xx,.42,zz);
+    const w=createPawHQPart(c,new THREE.CylinderGeometry(.40,.40,.25,20),shade,xx,.42,zz);
     w.rotation.z=Math.PI/2;
-    pawPart(c,new THREE.CylinderGeometry(.22,.22,.27,18),hqSilver,xx*1.01,.42,zz).rotation.z=Math.PI/2;
+    createPawHQPart(c,new THREE.CylinderGeometry(.22,.22,.27,18),hqSilver,xx*1.01,.42,zz).rotation.z=Math.PI/2;
   }
   for(const xx of [-.68,.68]){
-    pawPart(c,new THREE.SphereGeometry(.19,12,10),hqGlow,xx,.70,-1.61);
-    pawPart(c,new THREE.SphereGeometry(.14,10,8),new THREE.MeshBasicMaterial({color:0xff5b43}),xx,.68,1.59);
+    createPawHQPart(c,new THREE.SphereGeometry(.19,12,10),hqGlow,xx,.70,-1.61);
+    createPawHQPart(c,new THREE.SphereGeometry(.14,10,8),new THREE.MeshBasicMaterial({color:0xff5b43}),xx,.68,1.59);
   }
   const sirenMat=new THREE.MeshBasicMaterial({color:i===1?0xffd85f:0x67d4ff});
-  pawPart(c,new THREE.BoxGeometry(.95,.18,.38),sirenMat,0,1.67,.28);
+  createPawHQPart(c,new THREE.BoxGeometry(.95,.18,.38),sirenMat,0,1.67,.28);
   const a=pawHomes[i],x=15.1*Math.sin(a),z=15.1*Math.cos(a);
   c.position.set(x,.28,z);c.rotation.y=a;
   pawHQ.add(c);pawCars.push(c);
@@ -6657,7 +6657,7 @@ function selectBlock(type){
 document.querySelectorAll('.slot').forEach(el=>el.addEventListener('click',()=>selectBlock(el.dataset.block)));
 function refreshNachtrabeMenu(){
   document.body.classList.add('meadow-mode');
-  $('worldSubtitle').textContent='PAW Patrol · V144';
+  $('worldSubtitle').textContent='PAW Patrol · V145';
   regionName='';updateRegion();
 }
 $('fortressBtn').addEventListener('click',()=>{
@@ -6703,14 +6703,14 @@ function updateRegion(){
       name='🔥 Innenhof';
     }
     if(regionName!==name){regionName=name;$('regionLabel').textContent=name;
-      $('worldSubtitle').textContent=name.includes('Paw Patrol')?'PAW Patrol · V144':'Schloss Nachtrabe · V143';}
+      $('worldSubtitle').textContent=name.includes('Paw Patrol')?'PAW Patrol · V145':'Schloss Nachtrabe · V145';}
     return;
   }
   let b=biomeAt(Math.floor(player.x),Math.floor(player.z));
   if(b==='fels'&&player.x>23&&player.z>=-11&&player.z<=-1&&player.y<11)b='hoehle';
   const name=Math.hypot(player.x-RUIN.x,player.z-RUIN.z)<17?'🗝️ Schattenruine':Math.hypot(player.x-CAMP.x,player.z-CAMP.z)<13?'⛺ Waldlager':Math.hypot(player.x-LOOKOUT.x,player.z-LOOKOUT.z)<14?'🏰 Himmelswarte':Math.hypot(player.x-FALL.x,player.z-FALL.z)<15?'💦 Kristallfall':b==='hoehle'?'🪨 Berghöhle':regions[b];
   if(name!==regionName){regionName=name;$('regionLabel').textContent=name;
-    $('worldSubtitle').textContent='Abenteuerwelt · V143';}
+    $('worldSubtitle').textContent='Abenteuerwelt · V145';}
 }
 const cameraButton=$('cameraBtn');
 function syncCameraButton(){

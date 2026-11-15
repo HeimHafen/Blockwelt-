@@ -1,23 +1,25 @@
-# Blockwelt V144 – reparierter Start und genaue Fehlerdiagnose
+# Blockwelt V145 – Safari-Startfehler behoben
 
-Dieses Paket ist für das neu angelegte Repository bestimmt. Es enthält die vollständigen 5 Spiel-Dateien und die README.
+## Konkrete Ursache
 
-Dateien: index.html, styles.css, game.js, nachtrabe.js, paw-lookout-3d.glb, README.md.
+In V144 waren zwei gleichnamige Funktionen `pawPart` im selben JavaScript-Modul deklariert, obwohl sie unterschiedliche Aufgaben erfüllen. Safari verweigerte deshalb schon das Einlesen des Moduls mit: `Cannot declare a function that shadows a let/const/class/function variable pawPart`.
 
-## Installation (GitHub über iPhone)
-1. Die bisherige Blockwelt sichern, falls im Menü verfügbar. Das Repository zusätzlich als ZIP speichern.
-2. Dieses Paket entpacken.
-3. Die fünf Spieldateien direkt in das Repository-Hauptverzeichnis hochladen und bestehende Dateien ersetzen. README.md zusätzlich hochladen.
-4. GitHub Pages: Settings → Pages → Deploy from branch → main / (root).
-5. Nach Veröffentlichung `?test=144` an die korrekte GitHub-Pages-URL anhängen. Oben muss **V144** stehen.
+V145 verwendet stattdessen `createPawPortalPart` für das Eingangstor und `createPawHQPart` für bewegliche Bauteile der PAW-Zentrale. Beide Funktionen und alle ihre Aufrufe wurden getrennt und geprüft. Sämtliche relevanten Dateireferenzen wurden auf V145 gesetzt.
 
-## Was anders ist
-- Alle importierten Dateien haben einen einheitlichen Cache-Parameter 144.
-- Prüft vor dem Spielstart auf GitHub Pages, ob die vier benötigten Ressourcen ausgeliefert werden.
-- Prüft die externen Three.js-Bibliotheken. Bei Ausfall von jsDelivr wird unpkg ausprobiert.
-- Zeigt bei einem Fehler **den tatsächlichen Modul- oder JavaScript-Fehler**, statt pauschal unvollständige Uploads zu behaupten.
-- Die GLB-Datei ist eine eigene 3D-Rekonstruktion, keine offizielle Originaldatei aus PAW Patrol.
-- Browser-Speicherstände werden nicht verändert.
+## Installation auf GitHub
 
-## Einschränkung
-Ein JavaScript-Syntaxcheck ersetzt keinen Laufzeittest auf dem iPhone. Ein Fehler kann erst im Browser sichtbar werden. In diesem Fall bitte die detaillierte Startdiagnose fotografieren.
+1. Repository und falls möglich den Spielstand sichern.
+2. Das ZIP entpacken.
+3. Diese fünf Dateien im **Hauptverzeichnis** ersetzen: `index.html`, `game.js`, `styles.css`, `nachtrabe.js`, `paw-lookout-3d.glb`. Auch `README.md` aktualisieren.
+4. Änderungen auf `main` übernehmen; Force Push aus.
+5. In GitHub Pages den Repository-Pfad mit `?v=145` aufrufen. Nicht die Safari-Website-Daten löschen.
+
+## Inhalt
+
+- Integrierte PAW-Zentrale als eigenständig erstelltes GLB-3D-Modell; kein offizielles PAW-Patrol-Modell.
+- Bestehende Spielwelt mit Schloss Nachtrabe und den vorgesehenen PAW-Spielbereichen.
+- Safari-Fehlerdiagnose bleibt erhalten.
+
+## Prüfgrenzen
+
+JavaScript-Syntax, doppelte Funktionsnamen, referenzierte lokale Dateien, GLB-Lesbarkeit und ZIP-Struktur sind geprüft. Ein vollständig erfolgreicher Spielstart auf deinem iPhone ist damit nicht bewiesen.
