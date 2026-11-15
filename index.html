@@ -6,9 +6,9 @@
   <meta name="theme-color" content="#98cde8">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="description" content="Blockwelt V145 – vollständiger bereinigter PAW-Lookout-Spielstand mit sichtbarer GLB-Diagnose.">
-  <title>Blockwelt V145 · PAW Patrol Lookout</title>
-  <link rel="stylesheet" href="styles.css?v=145">
+  <meta name="description" content="Blockwelt V146 – vollständiger bereinigter PAW-Lookout-Spielstand mit sichtbarer GLB-Diagnose.">
+  <title>Blockwelt V146 · PAW Patrol Lookout</title>
+  <link rel="stylesheet" href="styles.css?v=146">
   <script>
     // Register before the WebGL module loads. Block native pinch before
     // movement begins, including a second finger landing on a HUD control.
@@ -38,7 +38,7 @@
   <div id="loading" class="loading">Die Blockwelt wird vorbereitet …</div>
 
   <header class="topbar">
-    <div class="identity"><span class="logo" aria-hidden="true">▦</span><div><strong>BLOCKWELT</strong><small id="worldSubtitle">PAW Patrol · V145</small></div></div>
+    <div class="identity"><span class="logo" aria-hidden="true">▦</span><div><strong>BLOCKWELT</strong><small id="worldSubtitle">PAW Patrol · V146</small></div></div>
     <button class="round top-btn" id="menuBtn" type="button" aria-label="Menü öffnen">☰</button>
   </header>
 
@@ -167,7 +167,7 @@
       fontFamily: 'system-ui, sans-serif', fontSize: '15px', lineHeight: '1.5'
     });
     const title = document.createElement('h2');
-    title.textContent = 'Blockwelt V145 – Startdiagnose';
+    title.textContent = 'Blockwelt V146 – Startdiagnose';
     title.style.cssText = 'font-size:22px;margin:0 0 14px;color:#fff';
     el.append(title);
     const text = document.createElement('pre');
@@ -199,9 +199,9 @@
       function status(s) { if (loadEl && !window.__bwProblems.length) loadEl.textContent = s; }
       const headOk = async (name) => {
         try {
-          const response = await fetch('./' + name + '?check=145', {method: 'HEAD', cache: 'no-store'});
+          const response = await fetch('./' + name + '?check=146', {method: 'HEAD', cache: 'no-store'});
           if (response.status === 405 || response.status === 501) {
-            const alternative = await fetch('./' + name + '?check=145', {cache:'no-store'});
+            const alternative = await fetch('./' + name + '?check=146', {cache:'no-store'});
             return alternative.ok ? '' : ('HTTP ' + alternative.status);
           }
           return response.ok ? '' : ('HTTP ' + response.status);
@@ -246,7 +246,7 @@
       document.head.appendChild(map);
       status('Starte die 3D-Blockwelt …');
       try {
-        await import('./game.js?v=145');
+        await import('./game.js?v=146');
         if (!window.__blockweltStarted) problem('Startprüfung', 'game.js wurde geladen, meldet jedoch keinen erfolgreichen Spielstart.');
       } catch (e) {
         problem('Modulstart fehlgeschlagen', e.stack || e.message || String(e));

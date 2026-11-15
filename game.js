@@ -1,5 +1,5 @@
-import {buildCastleArchitecture,dressDoorway,interiorLampSites,wingWindows,towerWindows,buildLowerCellars,cellarLamps} from './nachtrabe.js?v=145';
-// BLOCKWELT V145 — begehbarer originalgetreuer Lookout-Nachbau auf GLB-Basis.
+import {buildCastleArchitecture,dressDoorway,interiorLampSites,wingWindows,towerWindows,buildLowerCellars,cellarLamps} from './nachtrabe.js?v=146';
+// BLOCKWELT V146 — begehbarer originalgetreuer Lookout-Nachbau auf GLB-Basis.
 // V24 ist die feste Grundlage. Keine Änderungen an Terrain-, Speicher- oder Werkstatt-IDs.
 // Südliche Werkstätten öffnen sich jetzt zum Dorfplatz, mit sicheren
 // Wegen, individuell schaltbaren Fassadenzeichen und freiem Brunnenblick.
@@ -1706,50 +1706,13 @@ function buildFutureColumn(x,z){
   }
 }
 function buildPawColumn(x,z){
+  // V146: the building is ONE glTF mesh. Do not generate the old block tower,
+  // block garage, roofs or opaque voxel walls beneath/inside the GLB model.
+  // Only the ground-level portal connection belongs to the voxel world.
   const dx=x+252,dz=z-190;
-  const radius=Math.hypot(dx,dz);
-  // Walkway linking the return portal to the forecourt.
-  if((Math.abs(dx)<=2&&dz>=-16&&dz<=0)||(Math.abs(dx)<=20&&dz>=-12&&dz<=-8))
-    put(x,4,z,'path');
-  // Open garage bays beside the tower.
-  if(dx>=8&&dx<=20&&dz>=-8&&dz<=7){
-    put(x,4,z,'cobble');
-    const wall=dx===8||dx===20||dz===7||
-      (dz===-8&&(dx===14||dx===15));
-    if(wall)for(let y=5;y<=9;y++)put(x,y,z,y===8&&dz===7?'glass':'stone');
-    put(x,10,z,'bricks');
-    put(x,11,z,'snow');
-    if(dz===0&&[11,17].includes(dx))put(x,9,z,'lantern');
-  }
-  if(radius>8.5)return;
-  if(radius<=6.5){
-    put(x,4,z,'cobble');
-    if(radius>=5.3&&!(Math.abs(dx)<=1&&dz<0))
-      for(let y=5;y<=9;y++)put(x,y,z,y===8?'glass':'snow');
-    if(dx!==-3||dz!==0)put(x,10,z,'stone');
-    if(radius<=3.2&&radius>=2.2&&!(dx===-3&&dz===0))
-      for(let y=11;y<=22;y++)put(x,y,z,y%4===0?'glass':'snow');
-    if(dz===2&&Math.abs(dx)<=2){
-      put(x,5,z,'netherDeep');
-      put(x,6,z,'glass');
-    }
-    if(dz===0&&Math.abs(dx)===4)put(x,9,z,'lantern');
-  }
-  // Overhanging observation deck with a wraparound glazed band.
-  if(dx!==-3||dz!==0){
-    put(x,22,z,'stone');
-    put(x,23,z,'bricks');
-  }else put(x,23,z,'bricks');
-  if(radius>=7.0)
-    for(let y=24;y<=27;y++)put(x,y,z,y===27?'snow':'glass');
-  put(x,28,z,'bricks');
-  if(radius<=6)put(x,29,z,'bricks');
-  if(radius<=3)put(x,30,z,'snow');
-  if(radius<1){
-    for(let y=31;y<=34;y++)put(x,y,z,'stone');
-    put(x,35,z,'lantern');
-  }
+  if(Math.abs(dx)<=2&&dz>=-16&&dz<=-6)put(x,4,z,'path');
 }
+
 function generateChunkData(cx,cz){
   if(isLegacyChunk(cx,cz)||generatedChunks.has(chunkKey(cx,cz)))return;
   if(isMeadow()){
@@ -2747,6 +2710,8 @@ function blocked(x,y,z){
   if(isMeadow()){
     const hx=x+251.5,hz=z-190.5,rr=Math.hypot(hx,hz),localY=y-5;
     if(!pawDoorsOpen&&Math.abs(hx)<2.0&&Math.abs(hz+6.24)<.18+PLAYER_R&&localY>.3&&localY<3.7)return true;
+    // Hidden, precise gameplay collider for locker/changing room (no voxel roof).
+    if(rr<3.96&&y>=14.78&&y<14.96&&y+PLAYER_H>14.94)return true;
     // Fully solid and walkable mission-room platform.
     if((rr<7.84||(Math.abs(hx+2.08)<1.53&&Math.abs(hz-8.04)<1.56))&&y>=23.80&&y<23.985&&y+PLAYER_H>23.95)return true;
     // Smooth actual Lookout outside walls, not voxel pillars; entrance faces south.
@@ -2760,7 +2725,9 @@ function blocked(x,y,z){
     // Panorama glass railing (invisible collider only, while glass stays transparent).
     if(localY>=18.9&&localY<22.86&&Math.abs(rr-7.86)<PLAYER_R+.04){
       const angle=(Math.atan2(hx,hz)+Math.PI*2)%(Math.PI*2);
-      if(angle<5.83||angle>6.24)return true;
+      const slideEntranceAngle=Math.PI/2-1.8;
+      const slideGap=Math.abs(Math.atan2(Math.sin(angle-slideEntranceAngle),Math.cos(angle-slideEntranceAngle)))<.24;
+      if(!slideGap)return true;
     }
     // Six rounded kennels; doorways are real holes that can be walked through.
     for(const a of [.45,1.08,1.77,4.51,5.18,5.83]){
@@ -5484,7 +5451,7 @@ pawReturn.position.set(-252,MEADOW_HEIGHT,174);
 pawReturn.rotation.y=0;
 scene.add(pawPortal,pawReturn);
 // Real glTF asset: curved triangles, real surfaces, not voxel blocks.
-// V143 — full replacement; always use the bundled model on first load. This GLB is a newly built reconstruction.
+// V146 — full replacement; always use the bundled model on first load. This GLB is a newly built reconstruction.
 // No official game files are copied; user-supplied third-party imports stay local.
 const pawHQ=new THREE.Group();
 pawHQ.position.set(-251.5,5,190.5);
@@ -5521,13 +5488,26 @@ function installPawMesh(root,normalize=false){
     const name=(obj.name||'').toLowerCase();
     // The exported glass is translucent; correcting material handling is important
     // because the previous V140 glass rendered as an opaque blue wall on iPhone.
-    if(name.includes('glass'))obj.material=hqGlass;
+    if(name.includes('glass')){obj.material=obj.material.clone();obj.material.transparent=true;obj.material.depthWrite=false;obj.material.side=THREE.DoubleSide;obj.material.opacity=Math.min(.42,obj.material.opacity||.4);}
     else if(name.includes('light'))obj.material=new THREE.MeshStandardMaterial({color:0x8cf3ff,emissive:0x3ec7f4,emissiveIntensity:.65,roughness:.23});
     else if(name.includes('screen'))obj.material=new THREE.MeshStandardMaterial({color:0x153761,emissive:0x0f2f5b,emissiveIntensity:.8,roughness:.18});
     obj.castShadow=false;obj.receiveShadow=true;
   });
   if(pawModelRoot){pawHQ.remove(pawModelRoot);pawModelRoot.traverse(obj=>{if(obj.geometry)obj.geometry.dispose();});}
   pawModelRoot=root;pawHQ.add(root);pawModelLoaded=true;
+  // The original-looking periscope is part of the GLB, not recreated with
+  // block primitives. Move its own geometry into the rotating scope pivot.
+  const parts=[];
+  root.traverse(obj=>{if(obj.isMesh&&obj.name.startsWith('PAWSCOPE_'))parts.push(obj);});
+  if(parts.length){
+    for(const item of [...pawScope.children])pawScope.remove(item);
+    for(const mesh of parts){
+      mesh.parent.remove(mesh);
+      pawScope.add(mesh);
+      mesh.position.y-=24.5;
+    }
+  }
+
   pawStatusMessage('Geladen – begehbare Zentrale ist aktiv');
 }
 function parseCustomPaw(buffer,feedback=true){
@@ -5558,7 +5538,7 @@ async function restoreCustomPaw(){
     if(saved){pawCustomSelected=true;parseCustomPaw(saved,false);}
   }catch(error){console.warn('Kein lokal importiertes PAW-GLB',error);}
 }
-pawLoader.load('./paw-lookout-3d.glb?v=145',gltf=>{
+pawLoader.load('./paw-lookout-3d.glb?v=146',gltf=>{
   if(!pawCustomSelected)installPawMesh(gltf.scene);
 },undefined,error=>{
   console.error('3D-Zentrale fehlt',error);
@@ -5586,13 +5566,13 @@ pawResetBtn?.addEventListener('click',async()=>{
       tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
     });db.close();
     pawCustomSelected=false;
-    pawLoader.load('./paw-lookout-3d.glb?v=145',gltf=>{installPawMesh(gltf.scene);toast('Lookout V145 wiederhergestellt');});
+    pawLoader.load('./paw-lookout-3d.glb?v=146',gltf=>{installPawMesh(gltf.scene);toast('Lookout V146 wiederhergestellt');});
   }catch(error){console.warn(error);toast('Modell-Zuruecksetzen nicht moeglich');}
 });
 function createPawHQPart(group,geom,mat,x,y,z){
   const m=new THREE.Mesh(geom,mat);m.position.set(x,y,z);group.add(m);return m;
 }
-// Operational two-stop lift. The lower stop is just inside the entrance.
+// Operational three-stop lift: ground floor, changing room, observation deck.
 const liftButton=document.createElement('button');liftButton.className='castle-lever';
 Object.assign(liftButton.style,{position:'fixed',bottom:'32%',left:'50%',transform:'translateX(-50%)',zIndex:10,
  padding:'12px 18px',background:'#163e77',color:'white',border:'1px solid #84e0ff',borderRadius:'12px'});
@@ -5606,20 +5586,19 @@ pawHQ.add(liftCar);
 let pawRide=null,pawSlide=null,pawPole=null;
 function pawLanding(){
   if(!gameRunning||!isMeadow()||Math.abs(player.x+254.5)>.85||Math.abs(player.z-190.5)>.88)return null;
-  if(Math.abs(player.y-5)<.34)return 5;
-  if(Math.abs(player.y-24)<.32)return 24;
+  for(const stop of [5,15,24])if(Math.abs(player.y-stop)<.36)return stop;
   return null;
 }
 liftButton.addEventListener('click',()=>{
   const floor=pawLanding();if(floor===null||pawRide||pawSlide!==null||pawPole!==null)return;
-  pawRide={from:floor,to:floor===5?24:5,elapsed:0};
+  pawRide={from:floor,to:floor===5?15:floor===15?24:5,elapsed:0};
 });
 function updatePawLift(dt){
   pawHQ.visible=isMeadow()&&Math.hypot(player.x+251.5,player.z-190.5)<135;
   const floor=pawLanding();
   liftButton.hidden=!gameRunning||(!pawRide&&floor===null);
   liftButton.disabled=Boolean(pawRide);
-  liftButton.textContent=pawRide?'Fahrstuhl faehrt …':floor===24?'Fahrstuhl · nach unten':'Fahrstuhl · zur Leitstelle';
+  liftButton.textContent=pawRide?'Fahrstuhl faehrt …':floor===24?'Fahrstuhl · Erdgeschoss':floor===15?'Fahrstuhl · Leitstelle':'Fahrstuhl · Umkleideraum';
   liftCar.visible=Boolean(pawRide)||floor!==null;
   if(!pawRide){liftCar.position.set(-3,(floor??5)-5,0);return;}
   if(!gameRunning)return;
@@ -5627,13 +5606,13 @@ function updatePawLift(dt){
   player.x=-254.5;player.z=190.5;player.y=THREE.MathUtils.lerp(pawRide.from,pawRide.to,ease)+.025;
   player.vy=0;player.grounded=false;
   liftCar.position.set(-3,player.y-5-.025,0);
-  if(progress>=1){player.y=pawRide.to+.025;toast(pawRide.to===24?'Leitstelle erreicht':'Erdgeschoss erreicht');pawRide=null;}
+  if(progress>=1){player.y=pawRide.to+.025;toast(pawRide.to===24?'Leitstelle erreicht':pawRide.to===15?'Umkleideraum erreicht':'Erdgeschoss erreicht');pawRide=null;}
 }
 // A physical open slide trough comes from the GLB. Move the avatar along its helix.
 const slidePoints=[];
 for(let i=0;i<=120;i++){
-  const t=i/120,angle=1.8+t*Math.PI*1.75;
-  slidePoints.push(new THREE.Vector3(9*Math.cos(angle),18.4*(1-t)+.60,9*Math.sin(angle)));
+  const t=i/120,angle=1.8+t*Math.PI*2.3;
+  slidePoints.push(new THREE.Vector3((9.05+.10*(1-t))*Math.cos(angle),18.47*(1-t)+.51,(9.05+.10*(1-t))*Math.sin(angle)));
 }
 const slideCurve=new THREE.CatmullRomCurve3(slidePoints);
 const slideButton=liftButton.cloneNode();slideButton.textContent='Rutsche · los!';gameEl.append(slideButton);
@@ -5663,10 +5642,7 @@ const poleRail=new THREE.Mesh(new THREE.CylinderGeometry(.13,.13,19.1,20),hqSilv
 poleRail.position.set(3.18,9.52,-.92);pawHQ.add(poleRail);
 // The yellow periscope actually rotates when a player uses its control.
 const pawScope=new THREE.Group();pawScope.position.set(0,24.5,0);pawHQ.add(pawScope);
-createPawHQPart(pawScope,new THREE.CylinderGeometry(.65,.67,2.45,28),hqYellow,0,1.22,0);
-createPawHQPart(pawScope,new THREE.CylinderGeometry(.77,.77,2.15,28),hqYellow,0,2.5,-.84).rotation.x=Math.PI/2;
-createPawHQPart(pawScope,new THREE.CylinderGeometry(.69,.69,.14,28),hqBlue,0,2.5,-1.96).rotation.x=Math.PI/2;
-createPawHQPart(pawScope,new THREE.CylinderGeometry(.49,.49,.16,28),hqGlass,0,2.5,-2.05).rotation.x=Math.PI/2;
+// V146: genuine curved periscope geometry comes from PAWSCOPE_* GLB nodes.
 let pawScopeTarget=0,pawScopeView=false;
 // Sliding glass entrance doors, open by default so arrival is never blocked.
 const pawDoors=new THREE.Group();
@@ -5680,7 +5656,7 @@ let pawDoorsOpen=true;
 const missionCanvas=document.createElement('canvas');missionCanvas.width=768;missionCanvas.height=384;
 const missionTexture=new THREE.CanvasTexture(missionCanvas);missionTexture.colorSpace=THREE.SRGBColorSpace;
 const missionDisplay=new THREE.Mesh(new THREE.PlaneGeometry(5.9,2.34),new THREE.MeshBasicMaterial({map:missionTexture,side:THREE.DoubleSide}));
-missionDisplay.position.set(0,21.02,5.89);missionDisplay.rotation.y=Math.PI;pawHQ.add(missionDisplay);
+missionDisplay.position.set(0,21.02,5.30);missionDisplay.rotation.y=Math.PI;pawHQ.add(missionDisplay);
 const pawMissions=[
  {name:'CHASE',detail:'VERKEHR SICHERN',color:'#327ff3'},
  {name:'MARSHALL',detail:'BRANDEINSATZ',color:'#f45155'},
@@ -5710,26 +5686,56 @@ const pawHomes=[.45,1.08,1.77,4.51,5.18,5.83];
 const carColors=[0x1266cb,0xf13d46,0xf2c12c,0x49b77c,0xe99439,0xe877bd];
 const pawCars=[];
 function createPawCar(i){
-  const c=new THREE.Group();const paint=new THREE.MeshStandardMaterial({color:carColors[i],metalness:.15,roughness:.37});
-  const shade=new THREE.MeshStandardMaterial({color:0x152a45,roughness:.66});
-  const windows=new THREE.MeshPhysicalMaterial({color:0x79cbe3,metalness:.12,roughness:.16,transparent:true,opacity:.79});
-  createPawHQPart(c,new THREE.BoxGeometry(2.25,.60,3.15),paint,0,.57,0);
-  createPawHQPart(c,new THREE.BoxGeometry(1.86,.75,1.50),paint,0,1.16,.28);
-  createPawHQPart(c,new THREE.BoxGeometry(1.58,.53,.08),windows,0,1.16,-.54);
-  createPawHQPart(c,new THREE.BoxGeometry(1.65,.15,.09),hqSilver,0,.56,-1.62);
-  for(const xx of [-1.05,1.05])for(const zz of [-.99,1.06]){
-    const w=createPawHQPart(c,new THREE.CylinderGeometry(.40,.40,.25,20),shade,xx,.42,zz);
-    w.rotation.z=Math.PI/2;
-    createPawHQPart(c,new THREE.CylinderGeometry(.22,.22,.27,18),hqSilver,xx*1.01,.42,zz).rotation.z=Math.PI/2;
+  const c=new THREE.Group();
+  const paint=new THREE.MeshStandardMaterial({color:carColors[i],metalness:.21,roughness:.3});
+  const trim=new THREE.MeshStandardMaterial({color:0xeaf4fa,metalness:.59,roughness:.24});
+  const tyre=new THREE.MeshStandardMaterial({color:0x162332,roughness:.83});
+  const glass=new THREE.MeshPhysicalMaterial({color:0x65bfdd,metalness:.14,roughness:.14,
+    transparent:true,opacity:.79});
+  function ellipsoid(x,y,z,rx,ry,rz,mat){
+    const m=createPawHQPart(c,new THREE.SphereGeometry(1,24,16),mat,x,y,z);
+    m.scale.set(rx,ry,rz);return m;
   }
-  for(const xx of [-.68,.68]){
-    createPawHQPart(c,new THREE.SphereGeometry(.19,12,10),hqGlow,xx,.70,-1.61);
-    createPawHQPart(c,new THREE.SphereGeometry(.14,10,8),new THREE.MeshBasicMaterial({color:0xff5b43}),xx,.68,1.59);
+  // Smooth, sculpted bodywork (no rectangular voxel vehicle bodies).
+  ellipsoid(0,.79,0,1.13,.49,1.64,paint);
+  ellipsoid(0,1.25,.29,.87,.56,.92,paint);
+  ellipsoid(0,1.38,-.19,.76,.33,.50,glass);
+  // polished bumpers, lights, suspension and tire hubs
+  for(const sign of [-1,1]){
+    const b=createPawHQPart(c,new THREE.CapsuleGeometry(.15,1.26,4,12),trim,0,.60,sign*1.46);
+    b.rotation.z=Math.PI/2;
+    for(const z of [-.92,.98]){
+      const wh=createPawHQPart(c,new THREE.CylinderGeometry(.39,.39,.22,28),tyre,sign*1.04,.48,z);
+      wh.rotation.z=Math.PI/2;
+      createPawHQPart(c,new THREE.CylinderGeometry(.23,.23,.245,24),trim,sign*1.058,.48,z).rotation.z=Math.PI/2;
+    }
+    ellipsoid(sign*.72,.82,-1.40,.24,.18,.09,hqGlow);
   }
-  const sirenMat=new THREE.MeshBasicMaterial({color:i===1?0xffd85f:0x67d4ff});
-  createPawHQPart(c,new THREE.BoxGeometry(.95,.18,.38),sirenMat,0,1.67,.28);
+  // role-specific details: police, fire, construction, recycling, water, flight
+  if(i===0){
+    createPawHQPart(c,new THREE.CapsuleGeometry(.13,.63,6,16),hqGlow,0,1.92,.37).rotation.z=Math.PI/2;
+  }else if(i===1){
+    const ladder=createPawHQPart(c,new THREE.BoxGeometry(.62,.10,1.54),trim,0,1.94,.44);
+    for(let zz=-.17;zz<=1.1;zz+=.21)createPawHQPart(c,new THREE.BoxGeometry(.6,.055,.055),hqSilver,0,2.01,zz);
+  }else if(i===2){
+    const scoop=createPawHQPart(c,new THREE.CylinderGeometry(.75,.85,1.75,32,1,true,0,Math.PI),hqSilver,0,.43,-1.52);
+    scoop.rotation.x=Math.PI/2;
+  }else if(i===3){
+    ellipsoid(0,1.31,.92,.95,.47,.68,hqSilver);
+    createPawHQPart(c,new THREE.TorusGeometry(.36,.08,8,24),hqGlow,0,1.73,.9).rotation.x=Math.PI/2;
+  }else if(i===4){
+    ellipsoid(0,.73,-1.18,1.05,.18,.38,trim);
+    ellipsoid(0,.81,1.11,.98,.18,.47,trim);
+  }else if(i===5){
+    // slender helicopter skids and top rotor (ground-transport testing mode)
+    createPawHQPart(c,new THREE.CylinderGeometry(.10,.10,.54,14),hqSilver,0,2.07,.26);
+    createPawHQPart(c,new THREE.BoxGeometry(3.7,.09,.24),hqWhite,0,2.40,.26);
+    for(const x of [-.78,.78]){
+      createPawHQPart(c,new THREE.CapsuleGeometry(.07,1.60,3,12),trim,x,.16,.14).rotation.x=Math.PI/2;
+    }
+  }
   const a=pawHomes[i],x=15.1*Math.sin(a),z=15.1*Math.cos(a);
-  c.position.set(x,.28,z);c.rotation.y=a;
+  c.position.set(x,.27,z);c.rotation.y=a;
   pawHQ.add(c);pawCars.push(c);
 }
 for(let i=0;i<6;i++)createPawCar(i);
@@ -5783,11 +5789,13 @@ function closestPawAction(){
   const y=player.y,x=player.x-pawHQ.position.x,z=player.z-pawHQ.position.z;
   if(pawDrive)return {kind:'exit',text:'🚙 Fahrzeug verlassen'};
   if(pawScopeView)return {kind:'scope',text:'🔭 Periskop verlassen'};
+  if(Math.abs(y-15)<.55&&Math.hypot(x,z)<3.9)return {kind:'locker',text:'🐾 Umkleideraum · Ausrüstung auswählen'};
   if(Math.abs(y-24)<.5){
     if(Math.hypot(x,z-4.6)<3.0)return {kind:'mission',text:'🐾 Einsatz an der Leitstelle starten'};
     if(Math.hypot(x-4.65,z-3.60)<2.1)return {kind:'scope',text:'🔭 Periskop drehen'};
     if(Math.hypot(x-3.18,z+.92)<1.5)return {kind:'pole',text:'↧ Ryders Rutschstange'};
   }
+  if(Math.abs(y-5)<.60&&Math.hypot(x,z-.25)<2.3)return {kind:'workshop',text:'🔧 Fahrzeugwerkstatt · Wartung starten'};
   if(Math.abs(y-5.2)<2.0){
     for(let i=0;i<pawHomes.length;i++){
       const a=pawHomes[i],hx=15.1*Math.sin(a),hz=15.1*Math.cos(a);
@@ -5801,6 +5809,8 @@ function closestPawAction(){
 pawAction.addEventListener('click',()=>{
   if(!gameRunning)return;
   switch(pawActionKind){
+    case 'workshop':toast('Werkstatt: Fahrzeuge geprüft und einsatzbereit');break;
+    case 'locker':missionIndex=(missionIndex+1)%6;toast('Ausrüstung: '+pawMissions[missionIndex].name);break;
     case 'mission':missionIndex=(missionIndex+1)%pawMissions.length;drawPawMission();toast('Einsatz: '+pawMissions[missionIndex].detail);break;
     case 'scope':
       pawScopeView=!pawScopeView;if(!pawScopeView)pawScopeTarget=pawScope.rotation.y;
@@ -6657,7 +6667,7 @@ function selectBlock(type){
 document.querySelectorAll('.slot').forEach(el=>el.addEventListener('click',()=>selectBlock(el.dataset.block)));
 function refreshNachtrabeMenu(){
   document.body.classList.add('meadow-mode');
-  $('worldSubtitle').textContent='PAW Patrol · V145';
+  $('worldSubtitle').textContent='PAW Patrol · V146';
   regionName='';updateRegion();
 }
 $('fortressBtn').addEventListener('click',()=>{
@@ -6703,14 +6713,14 @@ function updateRegion(){
       name='🔥 Innenhof';
     }
     if(regionName!==name){regionName=name;$('regionLabel').textContent=name;
-      $('worldSubtitle').textContent=name.includes('Paw Patrol')?'PAW Patrol · V145':'Schloss Nachtrabe · V145';}
+      $('worldSubtitle').textContent=name.includes('Paw Patrol')?'PAW Patrol · V146':'Schloss Nachtrabe · V146';}
     return;
   }
   let b=biomeAt(Math.floor(player.x),Math.floor(player.z));
   if(b==='fels'&&player.x>23&&player.z>=-11&&player.z<=-1&&player.y<11)b='hoehle';
   const name=Math.hypot(player.x-RUIN.x,player.z-RUIN.z)<17?'🗝️ Schattenruine':Math.hypot(player.x-CAMP.x,player.z-CAMP.z)<13?'⛺ Waldlager':Math.hypot(player.x-LOOKOUT.x,player.z-LOOKOUT.z)<14?'🏰 Himmelswarte':Math.hypot(player.x-FALL.x,player.z-FALL.z)<15?'💦 Kristallfall':b==='hoehle'?'🪨 Berghöhle':regions[b];
   if(name!==regionName){regionName=name;$('regionLabel').textContent=name;
-    $('worldSubtitle').textContent='Abenteuerwelt · V145';}
+    $('worldSubtitle').textContent='Abenteuerwelt · V146';}
 }
 const cameraButton=$('cameraBtn');
 function syncCameraButton(){
